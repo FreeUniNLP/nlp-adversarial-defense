@@ -94,5 +94,107 @@
         { "from": "SOCIAL_ACTION", "to": "OBJECT" },
         { "from": "SOCIAL_ACTION", "to": "DEVICE" }
       ]
-    }
+    },
+
+  "noun_subcategory_illegal_transitions": {
+    "description": "Illegal transitions between noun sub-categories within the same POS category.",
+    "ALIVE_internal": [
+      { "from": "HUMAN", "to": "ANIMAL" },
+      { "from": "ANIMAL", "to": "HUMAN" }
+    ],
+    "OBJECT_internal": [
+      { "from": "NATURAL", "to": "FOOD" },
+      { "from": "FOOD", "to": "NATURAL" }
+    ],
+    "DEVICE_internal": [
+      { "from": "TRANSPORT", "to": "ELECTRONIC" },
+      { "from": "TRANSPORT", "to": "TOOL" },
+      { "from": "ELECTRONIC", "to": "TRANSPORT" },
+      { "from": "ELECTRONIC", "to": "TOOL" },
+      { "from": "TOOL", "to": "TRANSPORT" },
+      { "from": "TOOL", "to": "ELECTRONIC" }
+    ],
+    "PLACE_internal": [
+      { "from": "URBAN", "to": "STRUCTURE" },
+      { "from": "URBAN", "to": "NATURAL" },
+      { "from": "NATURAL", "to": "URBAN" },
+      { "from": "NATURAL", "to": "STRUCTURE" },
+      { "from": "STRUCTURE", "to": "URBAN" },
+      { "from": "STRUCTURE", "to": "NATURAL" }
+    ],
+    "ABSTRACT_internal": [
+      { "from": "CONCEPT", "to": "SIGNAL" },
+      { "from": "CONCEPT", "to": "STATE" },
+      { "from": "STATE", "to": "SIGNAL" },
+      { "from": "STATE", "to": "CONCEPT" },
+      { "from": "SIGNAL", "to": "CONCEPT" },
+      { "from": "SIGNAL", "to": "STATE" }
+    ]
+  },
+
+  "verb_subcategory_illegal_transitions": {
+    "description": "Illegal transitions between verb sub-categories within the same POS category.",
+    "PHYSICAL_ACTION_internal": [
+      { "from": "LOCOMOTION", "to": "CONSUMPTION" },
+      { "from": "LOCOMOTION", "to": "MANIPULATION" },
+      { "from": "CONSUMPTION", "to": "LOCOMOTION" },
+      { "from": "CONSUMPTION", "to": "MANIPULATION" },
+      { "from": "MANIPULATION", "to": "LOCOMOTION" },
+      { "from": "MANIPULATION", "to": "CONSUMPTION" }
+    ],
+    "MENTAL_ACTION_internal": [
+      { "from": "PERCEPTION", "to": "COGNITION" },
+      { "from": "PERCEPTION", "to": "EMOTION" },
+      { "from": "COGNITION", "to": "PERCEPTION" },
+      { "from": "COGNITION", "to": "EMOTION" },
+      { "from": "EMOTION", "to": "PERCEPTION" },
+      { "from": "EMOTION", "to": "COGNITION" }
+    ],
+    "SOCIAL_ACTION_internal": [
+      { "from": "HELPING", "to": "COMMUNICATION" },
+      { "from": "HELPING", "to": "CONTROL" },
+      { "from": "COMMUNICATION", "to": "HELPING" },
+      { "from": "COMMUNICATION", "to": "CONTROL" },
+      { "from": "CONTROL", "to": "HELPING" },
+      { "from": "CONTROL", "to": "COMMUNICATION" }
+    ],
+    "SYSTEM_ACTION_internal": [
+      { "from": "CREATION", "to": "VALIDATION" },
+      { "from": "CREATION", "to": "OPERATION" },
+      { "from": "VALIDATION", "to": "CREATION" },
+      { "from": "VALIDATION", "to": "OPERATION" },
+      { "from": "OPERATION", "to": "CREATION" },
+      { "from": "OPERATION", "to": "VALIDATION" }
+    ]
+  },
+
+  "adjective_subcategory_illegal_transitions": {
+    "description": "Illegal transitions between adjective sub-categories within the same POS category.",
+    "SIZE_internal": [
+      { "from": "LARGER", "to": "SMALLER" },
+      { "from": "SMALLER", "to": "LARGER" }
+    ],
+    "QUALITY_internal": [
+      { "from": "POSITIVE", "to": "NEGATIVE" },
+      { "from": "NEGATIVE", "to": "POSITIVE" }
+    ],
+    "EMOTION_internal": [
+      { "from": "POSITIVE", "to": "NEGATIVE" },
+      { "from": "NEGATIVE", "to": "POSITIVE" }
+    ],
+    "STATE_internal": [
+      { "from": "OCCUPANCY", "to": "ACCESSIBILITY" },
+      { "from": "OCCUPANCY", "to": "TEMPERATURE" },
+      { "from": "OCCUPANCY", "to": "CONDITION" },
+      { "from": "ACCESSIBILITY", "to": "OCCUPANCY" },
+      { "from": "ACCESSIBILITY", "to": "TEMPERATURE" },
+      { "from": "ACCESSIBILITY", "to": "CONDITION" },
+      { "from": "TEMPERATURE", "to": "OCCUPANCY" },
+      { "from": "TEMPERATURE", "to": "ACCESSIBILITY" },
+      { "from": "TEMPERATURE", "to": "CONDITION" },
+      { "from": "CONDITION", "to": "OCCUPANCY" },
+      { "from": "CONDITION", "to": "ACCESSIBILITY" },
+      { "from": "CONDITION", "to": "TEMPERATURE" }
+    ]
+  }
 }
