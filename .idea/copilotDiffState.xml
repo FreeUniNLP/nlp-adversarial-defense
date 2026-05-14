@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/AGENTS.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/AGENTS.md" />
+              <option name="updatedContent" value="# AGENTS.md - AI Coding Guidelines for nlp-adversarial-defense&#10;&#10;## Project Overview&#10;Research project exploring adversarial attacks and robustness in NLP models using a custom synthetic mini-language, reinforcement learning, and attacker-defender architectures. The core data defines a constrained language with POS (parts-of-speech) transitions and category-level rules.&#10;&#10;## Key Data Structures&#10;- **Language Grammar**: `data/raw/transition.json` defines illegal transitions between POS tags (START, NOUN, VERB, ADJ, END) and subcategory constraints. Use this to validate sequence legality - any sequence containing an illegal transition is invalid.&#10;- **Vocabulary**: `data/raw/words.json` categorizes words by POS and subcategories (e.g., NOUN: ALIVE/OBJECT/DEVICE/PLACE/ABSTRACT; VERB: PHYSICAL_ACTION/MENTAL_ACTION/SOCIAL_ACTION/SYSTEM_ACTION; ADJECTIVE: SIZE/QUALITY/EMOTION/STATE).&#10;- **Sequence Format**: Valid sequences start with `&lt;START&gt;`, end with `&lt;END&gt;`, and must follow POS transition rules plus subcategory constraints within the same POS type.&#10;&#10;## Architecture Components&#10;- **`src/attacker/`**: Implement adversarial attack strategies to generate invalid sequences that appear plausible.&#10;- **`src/defender/`**: Build defense mechanisms to detect and reject adversarial inputs.&#10;- **`src/rl/`**: Use reinforcement learning to train agents that learn optimal attack/defense policies.&#10;- **`src/evaluation/`**: Develop metrics and benchmarks to measure attack success rates and defense robustness.&#10;- **`src/language/`**: Core language processing utilities for sequence generation, validation, and manipulation.&#10;&#10;## Development Patterns&#10;- **Sequence Validation**: Always check against `transition.json` rules - illegal POS transitions (e.g., START-&gt;VERB) and subcategory mismatches (e.g., NOUN ALIVE-&gt;DEVICE) make sequences invalid.&#10;- **Category Constraints**: Within POS types, respect subcategory transition rules (e.g., NOUN-&gt;NOUN transitions must follow noun_category_illegal_transitions).&#10;- **Data Loading**: Load vocabulary from `words.json` as nested dict: POS -&gt; subcategory -&gt; list of words.&#10;- **Adversarial Examples**: Generate sequences that violate rules subtly, e.g., swap words between incompatible categories while maintaining POS flow.&#10;&#10;## Workflows&#10;- **Environment**: Use Python virtual environments; no specific requirements file yet - install common NLP libs (numpy, torch) as needed.&#10;- **Data Processing**: Raw data in `data/raw/` should be processed into usable formats in `data/processed/` for training/evaluation.&#10;- **Experiments**: Store experimental results and configurations in `experiments/` directory.&#10;- **Notebooks**: Use `notebooks/` for exploratory analysis and prototyping before moving code to `src/`.&#10;&#10;## Key Files&#10;- `data/raw/transition.json`: Core grammar rules for sequence validation&#10;- `data/raw/words.json`: Complete vocabulary with category structure&#10;- `README.md`: High-level project description&lt;/content&gt;&#10;&lt;parameter name=&quot;filePath&quot;&gt;/home/konstantine/Documents/work/nlp/nlp-adversarial-defense/AGENTS.md" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/src/language/__init__.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/src/language/__init__.py" />
+              <option name="updatedContent" value="from .models import WordEntry&#10;from .loaders import VocabularyLoader&#10;&#10;__all__ = [&quot;WordEntry&quot;, &quot;VocabularyLoader&quot;]&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

@@ -5,76 +5,83 @@
   },
 
   "NOUN": {
-    "ALIVE": [
-      "DOG", "CAT", "MAN", "WOMAN",
-      "CHILD", "BIRD", "FISH", "HORSE"
-    ],
+    "ALIVE": {
+      "HUMAN": ["MAN", "WOMAN", "CHILD"],
+      "ANIMAL": ["DOG", "CAT", "BIRD", "FISH", "HORSE"]
+    },
 
-    "OBJECT": [
-      "FOOD", "WATER", "STONE", "WOOD",
-      "FIRE", "METAL", "AIR", "SALT"
-    ],
+    "OBJECT": {
+      "FIRM": ["METAL", "STONE", "WOOD"],
+      "LIQUID": ["WATER", "FIRE", "OIL"],
+      "GAS": ["AIR", "SMOKE"]
+    },
 
-    "DEVICE": [
-      "CAR", "PHONE", "ROBOT", "TOOL",
-      "DRONE", "ENGINE", "CAMERA", "SCREEN"
-    ],
+    "DEVICE": {
+      "TRANSPORT": ["CAR", "DRONE"],
+      "TOOL": ["TOOL", "ENGINE"],
+      "ELECTRONIC": ["PHONE", "COMPUTER"]
+    },
 
-    "PLACE": [
-      "CITY", "HOME", "FOREST", "RIVER",
-      "ROOM", "FIELD", "ROAD", "BRIDGE"
-    ],
+    "PLACE": {
+      "URBAN": ["CITY", "HOME", "ROOM", "ROAD"],
+      "NATURAL": ["FOREST", "RIVER", "FIELD"],
+      "STRUCTURE": ["BRIDGE", "TUNNEL"]
+    },
 
-    "ABSTRACT": [
-      "RULE", "SYSTEM", "ERROR", "SIGNAL",
-      "STATE", "PATTERN", "MEMORY", "ORDER"
-    ]
+    "ABSTRACT": {
+      "CONCEPT": ["RULE", "SYSTEM", "PATTERN"],
+      "STATE": ["STATE", "ORDER"],
+      "SIGNAL": ["ERROR", "SIGNAL", "MEMORY"]
+    }
   },
 
   "VERB": {
-    "PHYSICAL_ACTION": [
-      "EAT", "RUN", "JUMP",
-      "USE", "MOVE", "LIFT"
-    ],
+    "PHYSICAL_ACTION": {
+      "LOCOMOTION": ["RUN", "JUMP"],
+      "CONSUMPTION": ["EAT", "DRINK"],
+      "MANIPULATION": ["USE", "MOVE", "LIFT"]
+    },
 
-    "MENTAL_ACTION": [
-      "SEE", "THINK", "KNOW",
-      "LOVE", "HATE", "LEARN"
-    ],
+    "MENTAL_ACTION": {
+      "PERCEPTION": ["SEE", "HEAR"],
+      "COGNITION": ["THINK", "KNOW", "LEARN"],
+      "EMOTION": ["LOVE", "HATE"]
+    },
 
-    "SOCIAL_ACTION": [
-      "HELP", "GIVE", "TALK",
-      "FOLLOW", "ASK", "WARN"
-    ],
+    "SOCIAL_ACTION": {
+      "HELPING": ["HELP", "GIVE"],
+      "COMMUNICATION": ["TALK", "ASK", "WARN"],
+      "CONTROL": ["FOLLOW"]
+    },
 
-    "SYSTEM_ACTION": [
-      "GENERATE", "CHECK", "VALIDATE",
-      "FAIL", "UPDATE", "RESET"
-    ]
+    "SYSTEM_ACTION": {
+      "CREATION": ["GENERATE"],
+      "VALIDATION": ["CHECK", "VALIDATE"],
+      "OPERATION": ["FAIL", "UPDATE", "RESET"]
+    }
   },
 
   "ADJECTIVE": {
-    "SIZE": [
-      "BIG", "SMALL", "TINY",
-      "LARGE", "SHORT", "LONG", "WIDE"
-    ],
+    "SIZE": {
+      "LARGER": ["BIG", "LARGE", "LONG", "WIDE"],
+      "SMALLER": ["SMALL", "TINY", "SHORT"]
+    },
 
-    "QUALITY": [
-      "GOOD", "BAD", "STRONG",
-      "WEAK", "CLEAN", "DIRTY", "SHARP"
-    ],
+    "QUALITY": {
+      "POSITIVE": ["GOOD", "STRONG", "CLEAN", "SHARP"],
+      "NEGATIVE": ["BAD", "WEAK", "DIRTY"]
+    },
 
-    "EMOTION": [
-      "HAPPY", "SAD", "ANGRY",
-      "CALM", "FEARFUL", "PROUD", "NERVOUS"
-    ],
+    "EMOTION": {
+      "POSITIVE": ["HAPPY", "CALM", "PROUD"],
+      "NEGATIVE": ["SAD", "ANGRY", "FEARFUL", "NERVOUS"]
+    },
 
-    "STATE": [
-      "OPEN", "CLOSED", "FULL",
-      "EMPTY", "HOT", "COLD", "BROKEN"
-    ]
+    "STATE": {
+      "OCCUPANCY": ["FULL", "EMPTY"],
+      "ACCESSIBILITY": ["OPEN", "CLOSED"],
+      "TEMPERATURE": ["HOT", "COLD"],
+      "CONDITION": ["BROKEN"]
+    }
   }
 }
-
-
-
