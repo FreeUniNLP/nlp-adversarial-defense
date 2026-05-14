@@ -1,80 +1,4 @@
 {
-  "START": {
-    "NOUN": 0.7,
-    "ADJ": 0.3
-  },
-
-  "NOUN": {
-    "VERB": 0.4,
-    "ADJ": 0.15,
-    "NOUN": 0.1,
-    "END": 0.35
-  },
-
-  "ADJ": {
-    "NOUN": 1,
-  },
-
-  "VERB": {
-    "NOUN": 0.6,
-    "ADJ": 0.4,
-  }
-},
-
-
-
-{
-  "ALIVE": {
-    "ALIVE": 0.15,
-    "OBJECT": 0.20,
-    "DEVICE": 0.10,
-    "PLACE": 0.25,
-    "ABSTRACT": 0.30
-  },
-
-  "OBJECT": {
-    "ALIVE": 0.25,
-    "OBJECT": 0.20,
-    "DEVICE": 0.25,
-    "PLACE": 0.30,
-  },
-
-  "DEVICE": {
-    "OBJECT": 0.20,
-    "DEVICE": 0.35,
-    "ABSTRACT": 0.45
-  },
-
-  "PLACE": {
-    "ALIVE": 0.35,
-    "OBJECT": 0.20,
-    "DEVICE": 0.15,
-    "PLACE": 0.30,
-  },
-
-  "ABSTRACT": {
-    "OBJECT": 0.30,
-    "DEVICE": 0.40,
-    "ABSTRACT": 0.30
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-{
   "meta": {
     "description": "All illegal transitions in the synthetic mini-language system. A transition is illegal if it has zero probability (structurally absent edge). Use this to validate generated sequences.",
     "layers": ["pos", "noun_category", "word_pair_classes"],
@@ -84,108 +8,91 @@
   "pos_illegal_transitions": {
     "description": "Illegal transitions between POS types (START, NOUN, VERB, ADJ, END). Any sequence containing one of these consecutive POS pairs is illegal.",
     "transitions": [
-      { "from": "START", "to": "VERB",  "reason": "Sentences cannot begin with a verb" },
-      { "from": "START", "to": "END",   "reason": "Empty sentence not permitted" },
-      { "from": "START", "to": "START", "reason": "START is a one-way entry boundary" },
-      { "from": "NOUN",  "to": "START", "reason": "START is a one-way entry boundary" },
-      { "from": "ADJ",   "to": "VERB",  "reason": "Adjective must resolve to NOUN before a VERB can appear" },
-      { "from": "ADJ",   "to": "ADJ",   "reason": "No adjective chaining" },
-      { "from": "ADJ",   "to": "END",   "reason": "Sentence cannot end on an adjective" },
-      { "from": "ADJ",   "to": "START", "reason": "START is a one-way entry boundary" },
-      { "from": "VERB",  "to": "VERB",  "reason": "No verb chaining" },
-      { "from": "VERB",  "to": "END",   "reason": "Sentence cannot end on a verb" },
-      { "from": "VERB",  "to": "START", "reason": "START is a one-way entry boundary" },
-      { "from": "END",   "to": "NOUN",  "reason": "END is absorbing — no exit" },
-      { "from": "END",   "to": "VERB",  "reason": "END is absorbing — no exit" },
-      { "from": "END",   "to": "ADJ",   "reason": "END is absorbing — no exit" },
-      { "from": "END",   "to": "START", "reason": "END is absorbing — no exit" },
-      { "from": "END",   "to": "END",   "reason": "END is absorbing — no exit" }
+      { "from": "START", "to": "VERB" },
+      { "from": "START", "to": "END" },
+      { "from": "START", "to": "START" },
+      { "from": "NOUN", "to": "START" },
+      { "from": "ADJ", "to": "VERB" },
+      { "from": "ADJ", "to": "ADJ" },
+      { "from": "ADJ", "to": "END" },
+      { "from": "ADJ", "to": "START" },
+      { "from": "VERB", "to": "VERB" },
+      { "from": "VERB", "to": "END" },
+      { "from": "VERB", "to": "START" },
+      { "from": "END", "to": "NOUN" },
+      { "from": "END", "to": "VERB" },
+      { "from": "END", "to": "ADJ" },
+      { "from": "END", "to": "START" },
+      { "from": "END", "to": "END" }
     ]
   },
+
 
   "noun_category_illegal_transitions": {
     "description": "Illegal transitions between noun subcategories. These apply whenever a NOUN->NOUN POS transition is taken.",
     "transitions": [
-      { "from": "ALIVE",    "to": "DEVICE",   "reason": "Edge absent from noun category transition matrix" },
-      { "from": "OBJECT",   "to": "ABSTRACT", "reason": "Edge absent from noun category transition matrix" },
-      { "from": "DEVICE",   "to": "ALIVE",    "reason": "Edge absent from noun category transition matrix" },
-      { "from": "DEVICE",   "to": "PLACE",    "reason": "Edge absent from noun category transition matrix" },
-      { "from": "PLACE",    "to": "ABSTRACT", "reason": "Edge absent from noun category transition matrix" },
-      { "from": "ABSTRACT", "to": "ALIVE",    "reason": "Edge absent from noun category transition matrix" },
-      { "from": "ABSTRACT", "to": "PLACE",    "reason": "Edge absent from noun category transition matrix" }
+      { "from": "ALIVE", "to": "DEVICE" },
+      { "from": "OBJECT", "to": "ABSTRACT" },
+      { "from": "DEVICE", "to": "ALIVE" },
+      { "from": "DEVICE", "to": "PLACE" },
+      { "from": "PLACE", "to": "ABSTRACT" },
+      { "from": "ABSTRACT", "to": "ALIVE" },
+      { "from": "ABSTRACT", "to": "PLACE" }
     ]
   },
 
-
-
-
-	{
-  "noun_to_verb_illegal_transitions": {
-    "description": "Category-level illegal transitions from NOUN categories to VERB categories. If a pair is missing, it is allowed. These constraints define semantic incompatibility in the synthetic language environment.",
-
+  "noun_to_adj_illegal_transitions": {
+    "description": "Category-level illegal transitions from NOUN categories to ADJ categories.",
     "transitions": [
-      {
-        "from": "OBJECT",
-        "to": "PHYSICAL_ACTION",
-        "reason": "Inert objects cannot initiate physical actions in this model (no agency)"
-      },
-      {
-        "from": "OBJECT",
-        "to": "MENTAL_ACTION",
-        "reason": "Objects cannot perform cognition"
-      },
-      {
-        "from": "OBJECT",
-        "to": "SOCIAL_ACTION",
-        "reason": "Objects lack social agency"
-      },
-
-      {
-        "from": "DEVICE",
-        "to": "MENTAL_ACTION",
-        "reason": "Devices do not have cognition in this system"
-      },
-      {
-        "from": "DEVICE",
-        "to": "SOCIAL_ACTION",
-        "reason": "Devices are not social agents"
-      },
-
-      {
-        "from": "PLACE",
-        "to": "PHYSICAL_ACTION",
-        "reason": "Locations do not execute actions (they are contexts, not agents)"
-      },
-      {
-        "from": "PLACE",
-        "to": "MENTAL_ACTION",
-        "reason": "Locations do not possess cognition"
-      },
-      {
-        "from": "PLACE",
-        "to": "SOCIAL_ACTION",
-        "reason": "Locations are not agents in social interaction"
-      },
-
-      {
-        "from": "ABSTRACT",
-        "to": "PHYSICAL_ACTION",
-        "reason": "Abstract systems do not perform physical actions directly"
-      },
-      {
-        "from": "ABSTRACT",
-        "to": "SOCIAL_ACTION",
-        "reason": "Abstract entities are not social actors"
-      }
+      { "from": "ALIVE", "to": "SIZE" },
+      { "from": "OBJECT", "to": "EMOTION" },
+      { "from": "DEVICE", "to": "EMOTION" },
+      { "from": "PLACE", "to": "EMOTION" }
     ]
-  }
-}
+  },
 
+    "noun_to_verb_illegal_transitions": {
+      "description": "Category-level illegal transitions from NOUN categories to VERB categories.",
+      "transitions": [
+        { "from": "OBJECT", "to": "PHYSICAL_ACTION" },
+        { "from": "OBJECT", "to": "MENTAL_ACTION" },
+        { "from": "OBJECT", "to": "SOCIAL_ACTION" },
+        { "from": "DEVICE", "to": "MENTAL_ACTION" },
+        { "from": "DEVICE", "to": "SOCIAL_ACTION" },
+        { "from": "PLACE", "to": "PHYSICAL_ACTION" },
+        { "from": "PLACE", "to": "MENTAL_ACTION" },
+        { "from": "PLACE", "to": "SOCIAL_ACTION" },
+        { "from": "ABSTRACT", "to": "PHYSICAL_ACTION" },
+        { "from": "ABSTRACT", "to": "SOCIAL_ACTION" }
+      ]
+  },
 
+    "adj_to_noun_illegal_transitions": {
+      "description": "Category-level illegal transitions from ADJ categories to NOUN categories.",
+      "transitions": [
+        { "from": "EMOTION", "to": "OBJECT" },
+        { "from": "EMOTION", "to": "DEVICE" }
+      ]
+  },
 
+    "verb_to_adj_illegal_transitions": {
+      "description": "Category-level illegal transitions from VERB categories to ADJ categories.",
+      "transitions": [
+        { "from": "PHYSICAL_ACTION", "to": "EMOTION" },
+        { "from": "MENTAL_ACTION", "to": "SIZE" },
+        { "from": "SOCIAL_ACTION", "to": "SIZE" },
+        { "from": "SYSTEM_ACTION", "to": "EMOTION" }
+      ]
+    },
 
-
-
-
-
+    "verb_to_noun_illegal_transitions": {
+      "description": "Category-level illegal transitions from VERB categories to NOUN categories.",
+      "transitions": [
+        { "from": "SYSTEM_ACTION", "to": "ALIVE" },
+        { "from": "MENTAL_ACTION", "to": "OBJECT" },
+        { "from": "MENTAL_ACTION", "to": "DEVICE" },
+        { "from": "SOCIAL_ACTION", "to": "OBJECT" },
+        { "from": "SOCIAL_ACTION", "to": "DEVICE" }
+      ]
+    }
 }
