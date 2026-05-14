@@ -1,0 +1,73 @@
+{
+	"SPECIAL": {
+		"START": "<START>",
+		"END": "<END>"
+	},
+	"NOUN": {
+		"ALIVE": [
+			"DOG", "CAT", "MAN", "WOMAN", "CHILD",
+			"BIRD", "FISH", "HORSE", "MOUSE"
+		],
+
+		"OBJECT": [
+			"FOOD", "WATER", "STONE", "WOOD", "FIRE",
+			"METAL", "AIR", "SALT"
+		],
+
+		"DEVICE": [
+			"CAR", "PHONE", "ROBOT", "TOOL", "DRONE"
+		],
+
+		"PLACE": [
+			"CITY", "HOME", "FOREST", "RIVER", "ROOM"
+		],
+
+		"ABSTRACT": [
+			"RULE", "SYSTEM", "ERROR", "SIGNAL", "STATE"
+		]
+	},
+
+	"VERB": {
+		"PHYSICAL_ACTION": [
+			"EAT", "RUN", "JUMP", "USE", "MOVE",
+			"LIFT", "DROP", "PUSH"
+		],
+
+		"MENTAL_ACTION": [
+			"SEE", "THINK", "KNOW", "LOVE", "HATE",
+			"LEARN", "FORGET"
+		],
+
+		"SOCIAL_ACTION": [
+			"HELP", "GIVE", "TALK", "FOLLOW", "ASK"
+		],
+
+		"SYSTEM_ACTION": [
+			"GENERATE", "CHECK", "VALIDATE", "FAIL", "UPDATE"
+		]
+	},
+
+	"ADJECTIVE": {
+		"SIZE": [
+			"BIG", "SMALL", "TINY"
+		],
+
+		"QUALITY": [
+			"GOOD", "BAD", "STRONG", "WEAK",
+			"CLEAN", "DIRTY"
+		],
+
+		"EMOTION": [
+			"HAPPY", "SAD", "ANGRY", "CALM",
+			"FEARFUL"
+		],
+
+		"STATE": [
+			"OPEN", "CLOSED", "FULL", "EMPTY",
+			"HOT", "COLD", "BROKEN"
+		]
+	}
+}
+
+
+
