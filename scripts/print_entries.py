@@ -2,7 +2,7 @@ from src.language.parsers import LexiconParser
 
 
 def main():
-    nouns, verbs, adjectives = LexiconParser.parse("/home/konstantine/Documents/work/nlp/nlp-adversarial-defense/data/raw/word_centered_language/words.json")
+    nouns, verbs, adjectives = LexiconParser.parse("/home/poz3/Documents/Projects/NLP/nlp-adversarial-defense/data/raw/word_centered_language/words.json")
 
 
     for noun in nouns:
