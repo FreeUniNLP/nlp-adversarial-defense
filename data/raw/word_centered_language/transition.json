@@ -1,0 +1,11 @@
+{
+  "transitions": {
+    "START": ["ADJ", "NOUN"],
+    "ADJ":   ["NOUN"],
+    "NOUN":  ["VERB", "END"],
+    "VERB":  ["ADJ", "NOUN"],
+    "END":   []
+  },
+  "required_start": "START",
+  "required_end":   "END"
+}
