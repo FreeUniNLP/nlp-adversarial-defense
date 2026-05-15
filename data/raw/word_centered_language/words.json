@@ -1,0 +1,302 @@
+{
+  "_meta": {
+    "axes": {
+      "agency":      "0=passive, 1=operates, 2=instinct-driven, 3=fully deliberate",
+      "physicality": "0=abstract, 1=place/structure, 2=manufactured, 3=tangible-organic",
+      "social":      "0=none, 1=relational-concept, 2=group-aware, 3=fully-social",
+      "system":      "0=organic, 1=simple-mechanical, 2=rule-governed, 3=computational"
+    },
+    "verb_slots": {
+      "subj_agency_min":      "minimum agency score the subject must have",
+      "subj_physicality_min": "minimum physicality the subject must have (0 = no constraint)",
+      "obj_cat1":             "allowed cat1 values for the object noun (null = no object needed)",
+      "obj_physicality_min":  "minimum physicality the object must have"
+    },
+    "adj_slots": {
+      "modifies_cat1":        "which noun cat1 values this adjective may modify",
+      "req_physicality_min":  "noun must have at least this physicality",
+      "req_agency_min":       "noun must have at least this agency"
+    }
+  },
+
+  "NOUNS": {
+
+    "MAN":      { "cat1": "ALIVE", "cat2": "HUMAN",   "axes": { "agency": 3, "physicality": 3, "social": 3, "system": 0 } },
+    "WOMAN":    { "cat1": "ALIVE", "cat2": "HUMAN",   "axes": { "agency": 3, "physicality": 3, "social": 3, "system": 0 } },
+    "CHILD":    { "cat1": "ALIVE", "cat2": "HUMAN",   "axes": { "agency": 2, "physicality": 3, "social": 2, "system": 0 } },
+    "SOLDIER":  { "cat1": "ALIVE", "cat2": "HUMAN",   "axes": { "agency": 3, "physicality": 3, "social": 2, "system": 0 } },
+    "GUARD":    { "cat1": "ALIVE", "cat2": "HUMAN",   "axes": { "agency": 3, "physicality": 3, "social": 2, "system": 0 } },
+
+    "DOG":      { "cat1": "ALIVE", "cat2": "ANIMAL",  "axes": { "agency": 2, "physicality": 3, "social": 2, "system": 0 } },
+    "CAT":      { "cat1": "ALIVE", "cat2": "ANIMAL",  "axes": { "agency": 2, "physicality": 3, "social": 1, "system": 0 } },
+    "BIRD":     { "cat1": "ALIVE", "cat2": "ANIMAL",  "axes": { "agency": 2, "physicality": 3, "social": 1, "system": 0 } },
+    "HORSE":    { "cat1": "ALIVE", "cat2": "ANIMAL",  "axes": { "agency": 2, "physicality": 3, "social": 1, "system": 0 } },
+    "FISH":     { "cat1": "ALIVE", "cat2": "ANIMAL",  "axes": { "agency": 1, "physicality": 3, "social": 0, "system": 0 } },
+
+    "STONE":    { "cat1": "OBJECT", "cat2": "FIRM",   "axes": { "agency": 0, "physicality": 3, "social": 0, "system": 0 } },
+    "METAL":    { "cat1": "OBJECT", "cat2": "FIRM",   "axes": { "agency": 0, "physicality": 3, "social": 0, "system": 0 } },
+    "WOOD":     { "cat1": "OBJECT", "cat2": "FIRM",   "axes": { "agency": 0, "physicality": 3, "social": 0, "system": 0 } },
+    "WATER":    { "cat1": "OBJECT", "cat2": "LIQUID", "axes": { "agency": 0, "physicality": 3, "social": 0, "system": 0 } },
+    "FIRE":     { "cat1": "OBJECT", "cat2": "LIQUID", "axes": { "agency": 0, "physicality": 3, "social": 0, "system": 0 } },
+    "OIL":      { "cat1": "OBJECT", "cat2": "LIQUID", "axes": { "agency": 0, "physicality": 3, "social": 0, "system": 0 } },
+    "AIR":      { "cat1": "OBJECT", "cat2": "GAS",    "axes": { "agency": 0, "physicality": 2, "social": 0, "system": 0 } },
+    "SMOKE":    { "cat1": "OBJECT", "cat2": "GAS",    "axes": { "agency": 0, "physicality": 2, "social": 0, "system": 0 } },
+    "DUST":     { "cat1": "OBJECT", "cat2": "GAS",    "axes": { "agency": 0, "physicality": 2, "social": 0, "system": 0 } },
+    "FOOD":     { "cat1": "OBJECT", "cat2": "FIRM",   "axes": { "agency": 0, "physicality": 3, "social": 0, "system": 0 } },
+
+    "CAR":      { "cat1": "DEVICE", "cat2": "TRANSPORT",   "axes": { "agency": 1, "physicality": 2, "social": 0, "system": 1 } },
+    "DRONE":    { "cat1": "DEVICE", "cat2": "TRANSPORT",   "axes": { "agency": 1, "physicality": 2, "social": 0, "system": 2 } },
+    "ENGINE":   { "cat1": "DEVICE", "cat2": "TOOL",        "axes": { "agency": 1, "physicality": 2, "social": 0, "system": 2 } },
+    "TOOL":     { "cat1": "DEVICE", "cat2": "TOOL",        "axes": { "agency": 0, "physicality": 2, "social": 0, "system": 1 } },
+    "WEAPON":   { "cat1": "DEVICE", "cat2": "TOOL",        "axes": { "agency": 0, "physicality": 2, "social": 0, "system": 1 } },
+    "PHONE":    { "cat1": "DEVICE", "cat2": "ELECTRONIC",  "axes": { "agency": 1, "physicality": 2, "social": 1, "system": 3 } },
+    "COMPUTER": { "cat1": "DEVICE", "cat2": "ELECTRONIC",  "axes": { "agency": 1, "physicality": 2, "social": 0, "system": 3 } },
+    "SENSOR":   { "cat1": "DEVICE", "cat2": "ELECTRONIC",  "axes": { "agency": 1, "physicality": 2, "social": 0, "system": 3 } },
+
+    "CITY":     { "cat1": "PLACE", "cat2": "URBAN",    "axes": { "agency": 0, "physicality": 1, "social": 2, "system": 1 } },
+    "HOME":     { "cat1": "PLACE", "cat2": "URBAN",    "axes": { "agency": 0, "physicality": 1, "social": 2, "system": 0 } },
+    "ROOM":     { "cat1": "PLACE", "cat2": "URBAN",    "axes": { "agency": 0, "physicality": 1, "social": 1, "system": 0 } },
+    "ROAD":     { "cat1": "PLACE", "cat2": "URBAN",    "axes": { "agency": 0, "physicality": 1, "social": 1, "system": 0 } },
+    "FOREST":   { "cat1": "PLACE", "cat2": "NATURAL",  "axes": { "agency": 0, "physicality": 1, "social": 0, "system": 0 } },
+    "RIVER":    { "cat1": "PLACE", "cat2": "NATURAL",  "axes": { "agency": 0, "physicality": 1, "social": 0, "system": 0 } },
+    "FIELD":    { "cat1": "PLACE", "cat2": "NATURAL",  "axes": { "agency": 0, "physicality": 1, "social": 0, "system": 0 } },
+    "BRIDGE":   { "cat1": "PLACE", "cat2": "STRUCTURE","axes": { "agency": 0, "physicality": 1, "social": 1, "system": 0 } },
+    "TUNNEL":   { "cat1": "PLACE", "cat2": "STRUCTURE","axes": { "agency": 0, "physicality": 1, "social": 0, "system": 0 } },
+
+    "RULE":     { "cat1": "ABSTRACT", "cat2": "CONCEPT", "axes": { "agency": 0, "physicality": 0, "social": 1, "system": 2 } },
+    "SYSTEM":   { "cat1": "ABSTRACT", "cat2": "CONCEPT", "axes": { "agency": 0, "physicality": 0, "social": 1, "system": 3 } },
+    "PATTERN":  { "cat1": "ABSTRACT", "cat2": "CONCEPT", "axes": { "agency": 0, "physicality": 0, "social": 0, "system": 2 } },
+    "ORDER":    { "cat1": "ABSTRACT", "cat2": "STATE",   "axes": { "agency": 0, "physicality": 0, "social": 2, "system": 2 } },
+    "STATE":    { "cat1": "ABSTRACT", "cat2": "STATE",   "axes": { "agency": 0, "physicality": 0, "social": 1, "system": 2 } },
+    "ERROR":    { "cat1": "ABSTRACT", "cat2": "SIGNAL",  "axes": { "agency": 0, "physicality": 0, "social": 0, "system": 3 } },
+    "SIGNAL":   { "cat1": "ABSTRACT", "cat2": "SIGNAL",  "axes": { "agency": 0, "physicality": 0, "social": 1, "system": 3 } },
+    "MEMORY":   { "cat1": "ABSTRACT", "cat2": "SIGNAL",  "axes": { "agency": 0, "physicality": 0, "social": 1, "system": 2 } },
+    "DANGER":   { "cat1": "ABSTRACT", "cat2": "STATE",   "axes": { "agency": 0, "physicality": 0, "social": 2, "system": 1 } },
+    "THREAT":   { "cat1": "ABSTRACT", "cat2": "SIGNAL",  "axes": { "agency": 0, "physicality": 0, "social": 2, "system": 1 } }
+  },
+
+  "VERBS": {
+
+    "RUN":      {
+      "cat1": "PHYSICAL_ACTION", "cat2": "LOCOMOTION",
+      "axes": { "agency": 2, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 3,
+      "obj_cat1": null
+    },
+    "JUMP":     {
+      "cat1": "PHYSICAL_ACTION", "cat2": "LOCOMOTION",
+      "axes": { "agency": 2, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 3,
+      "obj_cat1": null
+    },
+    "FALL":     {
+      "cat1": "PHYSICAL_ACTION", "cat2": "LOCOMOTION",
+      "axes": { "agency": 1, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 0, "subj_physicality_min": 2,
+      "obj_cat1": null
+    },
+    "EAT":      {
+      "cat1": "PHYSICAL_ACTION", "cat2": "CONSUMPTION",
+      "axes": { "agency": 2, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 3,
+      "obj_cat1": ["OBJECT", "ALIVE"], "obj_physicality_min": 3
+    },
+    "DRINK":    {
+      "cat1": "PHYSICAL_ACTION", "cat2": "CONSUMPTION",
+      "axes": { "agency": 2, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 3,
+      "obj_cat1": ["OBJECT"], "obj_physicality_min": 2
+    },
+    "CARRY":    {
+      "cat1": "PHYSICAL_ACTION", "cat2": "MANIPULATION",
+      "axes": { "agency": 2, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 3,
+      "obj_cat1": ["OBJECT", "DEVICE"], "obj_physicality_min": 2
+    },
+    "LIFT":     {
+      "cat1": "PHYSICAL_ACTION", "cat2": "MANIPULATION",
+      "axes": { "agency": 2, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 3,
+      "obj_cat1": ["OBJECT", "DEVICE"], "obj_physicality_min": 2
+    },
+    "MOVE":     {
+      "cat1": "PHYSICAL_ACTION", "cat2": "MANIPULATION",
+      "axes": { "agency": 1, "physicality": 2, "social": 0, "system": 0 },
+      "subj_agency_min": 1, "subj_physicality_min": 2,
+      "obj_cat1": ["OBJECT", "DEVICE", "ALIVE"], "obj_physicality_min": 2
+    },
+    "BREAK":    {
+      "cat1": "PHYSICAL_ACTION", "cat2": "MANIPULATION",
+      "axes": { "agency": 2, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 3,
+      "obj_cat1": ["OBJECT", "DEVICE"], "obj_physicality_min": 2
+    },
+    "BUILD":    {
+      "cat1": "PHYSICAL_ACTION", "cat2": "MANIPULATION",
+      "axes": { "agency": 3, "physicality": 3, "social": 0, "system": 0 },
+      "subj_agency_min": 3, "subj_physicality_min": 3,
+      "obj_cat1": ["OBJECT", "DEVICE", "PLACE"], "obj_physicality_min": 1
+    },
+
+    "SEE":      {
+      "cat1": "MENTAL_ACTION", "cat2": "PERCEPTION",
+      "axes": { "agency": 1, "physicality": 2, "social": 0, "system": 0 },
+      "subj_agency_min": 1, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE", "OBJECT", "DEVICE", "PLACE"], "obj_physicality_min": 1
+    },
+    "HEAR":     {
+      "cat1": "MENTAL_ACTION", "cat2": "PERCEPTION",
+      "axes": { "agency": 1, "physicality": 2, "social": 0, "system": 0 },
+      "subj_agency_min": 1, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE", "OBJECT", "DEVICE", "ABSTRACT"], "obj_physicality_min": 0
+    },
+    "THINK":    {
+      "cat1": "MENTAL_ACTION", "cat2": "COGNITION",
+      "axes": { "agency": 3, "physicality": 3, "social": 1, "system": 0 },
+      "subj_agency_min": 3, "subj_physicality_min": 3,
+      "obj_cat1": ["ABSTRACT", "ALIVE", "PLACE"], "obj_physicality_min": 0
+    },
+    "KNOW":     {
+      "cat1": "MENTAL_ACTION", "cat2": "COGNITION",
+      "axes": { "agency": 2, "physicality": 2, "social": 1, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 2,
+      "obj_cat1": ["ABSTRACT", "ALIVE", "PLACE", "OBJECT"], "obj_physicality_min": 0
+    },
+    "LEARN":    {
+      "cat1": "MENTAL_ACTION", "cat2": "COGNITION",
+      "axes": { "agency": 2, "physicality": 2, "social": 1, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 2,
+      "obj_cat1": ["ABSTRACT", "DEVICE"], "obj_physicality_min": 0
+    },
+    "FEAR":     {
+      "cat1": "MENTAL_ACTION", "cat2": "EMOTION",
+      "axes": { "agency": 2, "physicality": 2, "social": 1, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE", "ABSTRACT", "PLACE"], "obj_physicality_min": 0
+    },
+    "WANT":     {
+      "cat1": "MENTAL_ACTION", "cat2": "EMOTION",
+      "axes": { "agency": 2, "physicality": 2, "social": 1, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE", "OBJECT", "DEVICE", "PLACE", "ABSTRACT"], "obj_physicality_min": 0
+    },
+
+    "HELP":     {
+      "cat1": "SOCIAL_ACTION", "cat2": "HELPING",
+      "axes": { "agency": 3, "physicality": 2, "social": 3, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE"], "obj_physicality_min": 2
+    },
+    "FOLLOW":   {
+      "cat1": "SOCIAL_ACTION", "cat2": "CONTROL",
+      "axes": { "agency": 2, "physicality": 2, "social": 2, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE", "ABSTRACT"], "obj_physicality_min": 0
+    },
+    "WARN":     {
+      "cat1": "SOCIAL_ACTION", "cat2": "COMMUNICATION",
+      "axes": { "agency": 3, "physicality": 2, "social": 3, "system": 0 },
+      "subj_agency_min": 3, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE"], "obj_physicality_min": 2
+    },
+    "TALK":     {
+      "cat1": "SOCIAL_ACTION", "cat2": "COMMUNICATION",
+      "axes": { "agency": 3, "physicality": 2, "social": 3, "system": 0 },
+      "subj_agency_min": 3, "subj_physicality_min": 2,
+      "obj_cat1": null
+    },
+    "ASK":      {
+      "cat1": "SOCIAL_ACTION", "cat2": "COMMUNICATION",
+      "axes": { "agency": 3, "physicality": 2, "social": 3, "system": 0 },
+      "subj_agency_min": 3, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE"], "obj_physicality_min": 2
+    },
+    "GIVE":     {
+      "cat1": "SOCIAL_ACTION", "cat2": "HELPING",
+      "axes": { "agency": 3, "physicality": 2, "social": 3, "system": 0 },
+      "subj_agency_min": 3, "subj_physicality_min": 2,
+      "obj_cat1": ["OBJECT", "DEVICE", "ABSTRACT"], "obj_physicality_min": 0
+    },
+    "ATTACK":   {
+      "cat1": "SOCIAL_ACTION", "cat2": "CONTROL",
+      "axes": { "agency": 2, "physicality": 3, "social": 2, "system": 0 },
+      "subj_agency_min": 2, "subj_physicality_min": 2,
+      "obj_cat1": ["ALIVE", "DEVICE", "PLACE"], "obj_physicality_min": 1
+    },
+
+    "GENERATE": {
+      "cat1": "SYSTEM_ACTION", "cat2": "CREATION",
+      "axes": { "agency": 1, "physicality": 0, "social": 0, "system": 3 },
+      "subj_agency_min": 1, "subj_physicality_min": 0,
+      "obj_cat1": ["ABSTRACT", "SIGNAL"], "obj_physicality_min": 0
+    },
+    "CHECK":    {
+      "cat1": "SYSTEM_ACTION", "cat2": "VALIDATION",
+      "axes": { "agency": 1, "physicality": 0, "social": 0, "system": 3 },
+      "subj_agency_min": 1, "subj_physicality_min": 0,
+      "obj_cat1": ["ABSTRACT", "DEVICE", "ALIVE"], "obj_physicality_min": 0
+    },
+    "VALIDATE": {
+      "cat1": "SYSTEM_ACTION", "cat2": "VALIDATION",
+      "axes": { "agency": 1, "physicality": 0, "social": 0, "system": 3 },
+      "subj_agency_min": 1, "subj_physicality_min": 0,
+      "obj_cat1": ["ABSTRACT", "SIGNAL"], "obj_physicality_min": 0
+    },
+    "FAIL":     {
+      "cat1": "SYSTEM_ACTION", "cat2": "OPERATION",
+      "axes": { "agency": 0, "physicality": 0, "social": 0, "system": 3 },
+      "subj_agency_min": 0, "subj_physicality_min": 0,
+      "obj_cat1": null
+    },
+    "UPDATE":   {
+      "cat1": "SYSTEM_ACTION", "cat2": "OPERATION",
+      "axes": { "agency": 1, "physicality": 0, "social": 0, "system": 3 },
+      "subj_agency_min": 1, "subj_physicality_min": 0,
+      "obj_cat1": ["ABSTRACT", "DEVICE"], "obj_physicality_min": 0
+    },
+    "RESET":    {
+      "cat1": "SYSTEM_ACTION", "cat2": "OPERATION",
+      "axes": { "agency": 1, "physicality": 0, "social": 0, "system": 3 },
+      "subj_agency_min": 1, "subj_physicality_min": 0,
+      "obj_cat1": ["ABSTRACT", "DEVICE"], "obj_physicality_min": 0
+    }
+  },
+
+  "ADJECTIVES": {
+
+    "BIG":      { "cat1": "SIZE", "cat2": "LARGER",   "axes": { "physicality": 2 }, "modifies_cat1": ["ALIVE", "OBJECT", "DEVICE", "PLACE"], "req_physicality_min": 1 },
+    "SMALL":    { "cat1": "SIZE", "cat2": "SMALLER",  "axes": { "physicality": 2 }, "modifies_cat1": ["ALIVE", "OBJECT", "DEVICE"],          "req_physicality_min": 2 },
+    "LONG":     { "cat1": "SIZE", "cat2": "LARGER",   "axes": { "physicality": 1 }, "modifies_cat1": ["OBJECT", "PLACE"],                    "req_physicality_min": 1 },
+    "WIDE":     { "cat1": "SIZE", "cat2": "LARGER",   "axes": { "physicality": 1 }, "modifies_cat1": ["OBJECT", "PLACE"],                    "req_physicality_min": 1 },
+    "SHORT":    { "cat1": "SIZE", "cat2": "SMALLER",  "axes": { "physicality": 2 }, "modifies_cat1": ["ALIVE", "OBJECT", "PLACE"],           "req_physicality_min": 1 },
+    "HEAVY":    { "cat1": "SIZE", "cat2": "LARGER",   "axes": { "physicality": 3 }, "modifies_cat1": ["OBJECT", "DEVICE", "ALIVE"],          "req_physicality_min": 2 },
+
+    "GOOD":     { "cat1": "QUALITY", "cat2": "POSITIVE", "axes": { "social": 1 },  "modifies_cat1": ["ALIVE", "ABSTRACT", "DEVICE"],          "req_physicality_min": 0 },
+    "BAD":      { "cat1": "QUALITY", "cat2": "NEGATIVE", "axes": { "social": 1 },  "modifies_cat1": ["ALIVE", "ABSTRACT", "DEVICE"],          "req_physicality_min": 0 },
+    "STRONG":   { "cat1": "QUALITY", "cat2": "POSITIVE", "axes": { "physicality": 2 }, "modifies_cat1": ["ALIVE", "OBJECT", "DEVICE"],        "req_physicality_min": 2 },
+    "WEAK":     { "cat1": "QUALITY", "cat2": "NEGATIVE", "axes": { "physicality": 1 }, "modifies_cat1": ["ALIVE", "OBJECT", "DEVICE"],        "req_physicality_min": 2 },
+    "SHARP":    { "cat1": "QUALITY", "cat2": "POSITIVE", "axes": { "physicality": 3 }, "modifies_cat1": ["OBJECT", "DEVICE"],                 "req_physicality_min": 2 },
+    "CLEAN":    { "cat1": "QUALITY", "cat2": "POSITIVE", "axes": { "physicality": 2 }, "modifies_cat1": ["ALIVE", "OBJECT", "PLACE"],         "req_physicality_min": 1 },
+    "DIRTY":    { "cat1": "QUALITY", "cat2": "NEGATIVE", "axes": { "physicality": 2 }, "modifies_cat1": ["ALIVE", "OBJECT", "PLACE"],         "req_physicality_min": 1 },
+    "FAST":     { "cat1": "QUALITY", "cat2": "POSITIVE", "axes": { "physicality": 2 }, "modifies_cat1": ["ALIVE", "DEVICE"],                  "req_physicality_min": 2 },
+    "SLOW":     { "cat1": "QUALITY", "cat2": "NEGATIVE", "axes": { "physicality": 2 }, "modifies_cat1": ["ALIVE", "DEVICE"],                  "req_physicality_min": 2 },
+
+    "HAPPY":    { "cat1": "EMOTION", "cat2": "POSITIVE", "axes": { "social": 2 },  "modifies_cat1": ["ALIVE"],  "req_agency_min": 2 },
+    "SAD":      { "cat1": "EMOTION", "cat2": "NEGATIVE", "axes": { "social": 2 },  "modifies_cat1": ["ALIVE"],  "req_agency_min": 2 },
+    "ANGRY":    { "cat1": "EMOTION", "cat2": "NEGATIVE", "axes": { "social": 2 },  "modifies_cat1": ["ALIVE"],  "req_agency_min": 2 },
+    "CALM":     { "cat1": "EMOTION", "cat2": "POSITIVE", "axes": { "social": 2 },  "modifies_cat1": ["ALIVE"],  "req_agency_min": 2 },
+    "FEARFUL":  { "cat1": "EMOTION", "cat2": "NEGATIVE", "axes": { "social": 2 },  "modifies_cat1": ["ALIVE"],  "req_agency_min": 2 },
+    "PROUD":    { "cat1": "EMOTION", "cat2": "POSITIVE", "axes": { "social": 3 },  "modifies_cat1": ["ALIVE"],  "req_agency_min": 3 },
+
+    "FULL":     { "cat1": "STATE", "cat2": "OCCUPANCY",     "axes": { "physicality": 2 }, "modifies_cat1": ["OBJECT", "PLACE", "DEVICE"],      "req_physicality_min": 1 },
+    "EMPTY":    { "cat1": "STATE", "cat2": "OCCUPANCY",     "axes": { "physicality": 2 }, "modifies_cat1": ["OBJECT", "PLACE", "DEVICE"],      "req_physicality_min": 1 },
+    "OPEN":     { "cat1": "STATE", "cat2": "ACCESSIBILITY", "axes": { "physicality": 1 }, "modifies_cat1": ["PLACE", "DEVICE", "OBJECT"],      "req_physicality_min": 1 },
+    "CLOSED":   { "cat1": "STATE", "cat2": "ACCESSIBILITY", "axes": { "physicality": 1 }, "modifies_cat1": ["PLACE", "DEVICE", "OBJECT"],      "req_physicality_min": 1 },
+    "HOT":      { "cat1": "STATE", "cat2": "TEMPERATURE",   "axes": { "physicality": 2 }, "modifies_cat1": ["OBJECT", "PLACE", "ALIVE"],       "req_physicality_min": 2 },
+    "COLD":     { "cat1": "STATE", "cat2": "TEMPERATURE",   "axes": { "physicality": 2 }, "modifies_cat1": ["OBJECT", "PLACE", "ALIVE"],       "req_physicality_min": 2 },
+    "BROKEN":   { "cat1": "STATE", "cat2": "CONDITION",     "axes": { "physicality": 2 }, "modifies_cat1": ["DEVICE", "OBJECT"],               "req_physicality_min": 2 },
+    "DEAD":     { "cat1": "STATE", "cat2": "CONDITION",     "axes": { "physicality": 3 }, "modifies_cat1": ["ALIVE"],                          "req_agency_min": 0 },
+    "LOST":     { "cat1": "STATE", "cat2": "CONDITION",     "axes": { "physicality": 1 }, "modifies_cat1": ["ALIVE", "OBJECT", "ABSTRACT"],    "req_physicality_min": 0 },
+    "ACTIVE":   { "cat1": "STATE", "cat2": "CONDITION",     "axes": { "system": 2 },      "modifies_cat1": ["DEVICE", "ALIVE", "ABSTRACT"],    "req_physicality_min": 0 }
+  }
+}
