@@ -23,7 +23,7 @@
     },
 
     "PLACE": {
-      "URBAN": ["CITY", "HOME", "ROOM", "ROAD"],
+      "URBAN": ["CIcat1_illegal_transitionsTY", "HOME", "ROOM", "ROAD"],
       "NATURAL": ["FOREST", "RIVER", "FIELD"],
       "STRUCTURE": ["BRIDGE", "TUNNEL"]
     },
