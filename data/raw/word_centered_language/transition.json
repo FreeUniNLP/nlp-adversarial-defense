@@ -1,38 +1,31 @@
 {
-  "start_symbol": "S",
-
+  "start_symbol:": "START",
+  "end_symbol": "END",
   "rules": {
-
-    "S": [
-      ["NP"]
+    "START": [
+        ["SUBJECT_TERM"]
     ],
 
-    "VP_CHAIN": [
-      ["VP"],
-      ["VP", "VP_CHAIN"]
-    ],
-
-    "VP": [
-      ["VERB"],
-      ["VERB", "NP"]
-    ],
-
-    "NP": [
+    "OBJECT": [
       ["NOUN"],
       ["ADJ", "NOUN"],
       ["ADJ", "ADJ", "NOUN"]
     ],
 
-    "SP":
+    "SUBJECT": [
+      ["NOUN"],
+      ["ADJ", "NOUN"]
+    ],
+
+    "VERB_TERM": [
+      ["VERB"],
+      ["VERB", "OBJECT"],
+      ["VERB", "OBJECT", "VERB_TERM"]
+    ],
+
+    "SUBJECT_TERM": [
+       ["SUBJECT", "VERB_TERM"]
+    ]
   }
 }
-
-
-START -> SUBJECT
-SUBJECT -> [VERB TERM ....]
-VERB TERM = VERB + OBJECT | VERB
-OBJECT -> NOUN | ADJ + NOUN | ADJ + ADJ + NOUN
-SUBJECT -> NOUN | ADJ + NOUN | ADJ + ADJ + NOUN
-
-
 
