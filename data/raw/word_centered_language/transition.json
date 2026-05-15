@@ -26,3 +26,13 @@
     "SP":
   }
 }
+
+
+START -> SUBJECT
+SUBJECT -> [VERB TERM ....]
+VERB TERM = VERB + OBJECT | VERB
+OBJECT -> NOUN | ADJ + NOUN | ADJ + ADJ + NOUN
+SUBJECT -> NOUN | ADJ + NOUN | ADJ + ADJ + NOUN
+
+
+
