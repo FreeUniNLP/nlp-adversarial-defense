@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from src.language.entities import NounEntry, TagEntry, AxesEntry, VerbEntry, AdjectiveEntry, VerbArgumentEntry
+from src.language.entities import NounEntry, TagEntry, AxesEntry, VerbEntry, AdjectiveEntry, VerbArgumentEntry, \
+    VerbToNounConstraintEntry
 from src.language.reader import JsonReader
 
 
@@ -54,6 +55,12 @@ class LexiconParser:
                     tags_any = TagEntry(tag = constraint["tags_any"])
                     min_axis = AxesEntry(**values["min_axis"])
                     max_axis = AxesEntry(**values["max_axes"])
+                    verb_to_subject_constraint = VerbToNounConstraintEntry(
+                        tag=tags_any,
+                        axes_min=min_axis,
+                        axes_max=max_axis
+                    )
+
 
             #constarits
             entry = VerbEntry(
