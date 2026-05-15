@@ -1,11 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
 
-
-# =========================================================
-# DATA MODELS
-# =========================================================
-
 @dataclass
 class Axes:
     agency: int = 0
