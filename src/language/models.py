@@ -22,11 +22,3 @@ class Category2Entry:
     category_A: str
     category_B: str
 
-@dataclass
-class WordEntry:
-    word_A: str
-    word_B: str
-
-
-
-
