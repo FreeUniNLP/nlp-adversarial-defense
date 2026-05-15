@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from src.language import JsonReader
 from src.language.models import NounEntry, Axes, VerbEntry, AdjectiveEntry, PartialAxes
+from src.language.reader import JsonReader
 
 
 class LexiconParser:
