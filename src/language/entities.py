@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 @dataclass
-class AxesEntry:
+class axisEntry:
     agency: int = 0
     physicality: int = 0
     social: int = 0
@@ -16,13 +16,13 @@ class TagEntry:
 class NounEntry:
     word: str
     tag: TagEntry
-    axes: AxesEntry
+    axis: axisEntry
 
 @dataclass
 class VerbToNounConstraintEntry:
     tag: TagEntry
-    axes_min: AxesEntry
-    axes_max: AxesEntry
+    axis_min: axisEntry
+    axis_max: axisEntry
 
 @dataclass
 class VerbArgumentEntry:
@@ -31,19 +31,21 @@ class VerbArgumentEntry:
 
 @dataclass
 class VerbEntry:
+    word: str
     tag: TagEntry
-    axes: AxesEntry
+    axis: axisEntry
     verb_argument: VerbArgumentEntry
 
 @dataclass
 class AdjectiveToNounConstraint:
     tag: TagEntry
-    axes_min: AxesEntry
-    axes_max: AxesEntry
+    axis_min: axisEntry
+    axis_max: axisEntry
 
 @dataclass
 class AdjectiveEntry:
+    word: str
     tag: TagEntry
-    axes: AxesEntry
+    axis: axisEntry
     adjective_to_noun_constraint: AdjectiveToNounConstraint
 
