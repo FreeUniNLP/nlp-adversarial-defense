@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.language.models import NounEntry, Axes, VerbEntry, AdjectiveEntry, PartialAxes
+from src.language.entities import NounEntry, Axes, VerbEntry, AdjectiveEntry, PartialAxes
 from src.language.reader import JsonReader
 
 
