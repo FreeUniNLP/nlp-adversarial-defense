@@ -1,200 +1,554 @@
 {
   "meta": {
-    "description": "All illegal transitions in the synthetic mini-language system. A transition is illegal if it has zero probability (structurally absent edge). Use this to validate generated sequences.",
-    "layers": ["pos", "noun_category", "word_pair_classes"],
-    "note_on_verb_adj_categories": "Verb-category and adjective-category transition matrices are not yet defined. Until they are, all intra-verb-category and intra-adjective-category transitions are structurally absent."
+    "description": "All illegal transitions in the synthetic mini-language system. Three layers: pos (POS-to-POS), cat1 (outer category-to-category), cat2 (subcategory-to-subcategory). Cat2 restrictions only appear when their parent cat1 pair is NOT already restricted. Parse instructions below.",
+    "parse_guide": {
+      "pos_illegal_transitions": "Array of {from, to} POS pairs. POS values: START, NOUN, VERB, ADJ, END.",
+      "cat1_illegal_transitions": "Array of {from_pos, to_pos, from_cat1, to_cat1}. Apply only when the POS pair is allowed.",
+      "cat2_illegal_transitions": "Array of {from_pos, to_pos, from_cat1, to_cat1, from_cat2, to_cat2}. Apply only when both the POS pair AND the cat1 pair are allowed."
+    }
   },
 
-  "pos_illegal_transitions": {
-    "description": "Illegal transitions between POS types (START, NOUN, VERB, ADJ, END). Any sequence containing one of these consecutive POS pairs is illegal.",
-    "transitions": [
-      { "from": "START", "to": "VERB" },
-      { "from": "START", "to": "END" },
-      { "from": "START", "to": "START" },
-      { "from": "NOUN", "to": "START" },
-      { "from": "ADJ", "to": "VERB" },
-      { "from": "ADJ", "to": "ADJ" },
-      { "from": "ADJ", "to": "END" },
-      { "from": "ADJ", "to": "START" },
-      { "from": "VERB", "to": "VERB" },
-      { "from": "VERB", "to": "END" },
-      { "from": "VERB", "to": "START" },
-      { "from": "END", "to": "NOUN" },
-      { "from": "END", "to": "VERB" },
-      { "from": "END", "to": "ADJ" },
-      { "from": "END", "to": "START" },
-      { "from": "END", "to": "END" }
-    ]
-  },
+  "pos_illegal_transitions": [
+    { "from": "START", "to": "VERB"  },
+    { "from": "START", "to": "END"   },
+    { "from": "START", "to": "START" },
+    { "from": "NOUN",  "to": "START" },
+    { "from": "ADJ",   "to": "VERB"  },
+    { "from": "ADJ",   "to": "ADJ"   },
+    { "from": "ADJ",   "to": "END"   },
+    { "from": "ADJ",   "to": "START" },
+    { "from": "VERB",  "to": "VERB"  },
+    { "from": "VERB",  "to": "END"   },
+    { "from": "VERB",  "to": "START" },
+    { "from": "END",   "to": "NOUN"  },
+    { "from": "END",   "to": "VERB"  },
+    { "from": "END",   "to": "ADJ"   },
+    { "from": "END",   "to": "START" },
+    { "from": "END",   "to": "END"   }
+  ],
 
+  "cat1_illegal_transitions": [
 
-  "noun_category_illegal_transitions": {
-    "description": "Illegal transitions between noun subcategories. These apply whenever a NOUN->NOUN POS transition is taken.",
-    "transitions": [
-      { "from": "ALIVE", "to": "DEVICE" },
-      { "from": "OBJECT", "to": "ABSTRACT" },
-      { "from": "DEVICE", "to": "ALIVE" },
-      { "from": "DEVICE", "to": "PLACE" },
-      { "from": "PLACE", "to": "ABSTRACT" },
-      { "from": "ABSTRACT", "to": "ALIVE" },
-      { "from": "ABSTRACT", "to": "PLACE" }
-    ]
-  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ALIVE",    "to_cat1": "DEVICE"   },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT",   "to_cat1": "ABSTRACT" },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "DEVICE",   "to_cat1": "ALIVE"    },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "DEVICE",   "to_cat1": "PLACE"    },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",    "to_cat1": "ABSTRACT" },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ABSTRACT", "to_cat1": "ALIVE"    },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ABSTRACT", "to_cat1": "PLACE"    },
 
-  "noun_to_adj_illegal_transitions": {
-    "description": "Category-level illegal transitions from NOUN categories to ADJ categories.",
-    "transitions": [
-      { "from": "ALIVE", "to": "SIZE" },
-      { "from": "OBJECT", "to": "EMOTION" },
-      { "from": "DEVICE", "to": "EMOTION" },
-      { "from": "PLACE", "to": "EMOTION" }
-    ]
-  },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ALIVE",   "to_cat1": "SIZE"     },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "EMOTION"  },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "EMOTION"  },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "EMOTION"  },
 
-    "noun_to_verb_illegal_transitions": {
-      "description": "Category-level illegal transitions from NOUN categories to VERB categories.",
-      "transitions": [
-        { "from": "OBJECT", "to": "PHYSICAL_ACTION" },
-        { "from": "OBJECT", "to": "MENTAL_ACTION" },
-        { "from": "OBJECT", "to": "SOCIAL_ACTION" },
-        { "from": "DEVICE", "to": "MENTAL_ACTION" },
-        { "from": "DEVICE", "to": "SOCIAL_ACTION" },
-        { "from": "PLACE", "to": "PHYSICAL_ACTION" },
-        { "from": "PLACE", "to": "MENTAL_ACTION" },
-        { "from": "PLACE", "to": "SOCIAL_ACTION" },
-        { "from": "ABSTRACT", "to": "PHYSICAL_ACTION" },
-        { "from": "ABSTRACT", "to": "SOCIAL_ACTION" }
-      ]
-  },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "OBJECT",   "to_cat1": "PHYSICAL_ACTION" },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "OBJECT",   "to_cat1": "MENTAL_ACTION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "OBJECT",   "to_cat1": "SOCIAL_ACTION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "DEVICE",   "to_cat1": "MENTAL_ACTION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "DEVICE",   "to_cat1": "SOCIAL_ACTION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "PLACE",    "to_cat1": "PHYSICAL_ACTION" },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "PLACE",    "to_cat1": "MENTAL_ACTION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "PLACE",    "to_cat1": "SOCIAL_ACTION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT", "to_cat1": "PHYSICAL_ACTION" },
 
-    "adj_to_noun_illegal_transitions": {
-      "description": "Category-level illegal transitions from ADJ categories to NOUN categories.",
-      "transitions": [
-        { "from": "EMOTION", "to": "OBJECT" },
-        { "from": "EMOTION", "to": "DEVICE" }
-      ]
-  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION",  "to_cat1": "OBJECT"   },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION",  "to_cat1": "DEVICE"   },
 
-    "verb_to_adj_illegal_transitions": {
-      "description": "Category-level illegal transitions from VERB categories to ADJ categories.",
-      "transitions": [
-        { "from": "PHYSICAL_ACTION", "to": "EMOTION" },
-        { "from": "MENTAL_ACTION", "to": "SIZE" },
-        { "from": "SOCIAL_ACTION", "to": "SIZE" },
-        { "from": "SYSTEM_ACTION", "to": "EMOTION" }
-      ]
-    },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "PHYSICAL_ACTION", "to_cat1": "EMOTION" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "SIZE"    },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "SIZE"    },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "EMOTION" },
 
-    "verb_to_noun_illegal_transitions": {
-      "description": "Category-level illegal transitions from VERB categories to NOUN categories.",
-      "transitions": [
-        { "from": "SYSTEM_ACTION", "to": "ALIVE" },
-        { "from": "MENTAL_ACTION", "to": "OBJECT" },
-        { "from": "MENTAL_ACTION", "to": "DEVICE" },
-        { "from": "SOCIAL_ACTION", "to": "OBJECT" },
-        { "from": "SOCIAL_ACTION", "to": "DEVICE" }
-      ]
-    },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION", "to_cat1": "ALIVE"  },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION", "to_cat1": "OBJECT" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION", "to_cat1": "DEVICE" }
+  ],
 
-  "noun_subcategory_illegal_transitions": {
-    "description": "Illegal transitions between noun sub-categories within the same POS category.",
-    "ALIVE_internal": [
-      { "from": "HUMAN", "to": "ANIMAL" },
-      { "from": "ANIMAL", "to": "HUMAN" }
-    ],
-    "OBJECT_internal": [
-      { "from": "NATURAL", "to": "FOOD" },
-      { "from": "FOOD", "to": "NATURAL" }
-    ],
-    "DEVICE_internal": [
-      { "from": "TRANSPORT", "to": "ELECTRONIC" },
-      { "from": "TRANSPORT", "to": "TOOL" },
-      { "from": "ELECTRONIC", "to": "TRANSPORT" },
-      { "from": "ELECTRONIC", "to": "TOOL" },
-      { "from": "TOOL", "to": "TRANSPORT" },
-      { "from": "TOOL", "to": "ELECTRONIC" }
-    ],
-    "PLACE_internal": [
-      { "from": "URBAN", "to": "STRUCTURE" },
-      { "from": "URBAN", "to": "NATURAL" },
-      { "from": "NATURAL", "to": "URBAN" },
-      { "from": "NATURAL", "to": "STRUCTURE" },
-      { "from": "STRUCTURE", "to": "URBAN" },
-      { "from": "STRUCTURE", "to": "NATURAL" }
-    ],
-    "ABSTRACT_internal": [
-      { "from": "CONCEPT", "to": "SIGNAL" },
-      { "from": "CONCEPT", "to": "STATE" },
-      { "from": "STATE", "to": "SIGNAL" },
-      { "from": "STATE", "to": "CONCEPT" },
-      { "from": "SIGNAL", "to": "CONCEPT" },
-      { "from": "SIGNAL", "to": "STATE" }
-    ]
-  },
+  "cat2_illegal_transitions": [
 
-  "verb_subcategory_illegal_transitions": {
-    "description": "Illegal transitions between verb sub-categories within the same POS category.",
-    "PHYSICAL_ACTION_internal": [
-      { "from": "LOCOMOTION", "to": "CONSUMPTION" },
-      { "from": "LOCOMOTION", "to": "MANIPULATION" },
-      { "from": "CONSUMPTION", "to": "LOCOMOTION" },
-      { "from": "CONSUMPTION", "to": "MANIPULATION" },
-      { "from": "MANIPULATION", "to": "LOCOMOTION" },
-      { "from": "MANIPULATION", "to": "CONSUMPTION" }
-    ],
-    "MENTAL_ACTION_internal": [
-      { "from": "PERCEPTION", "to": "COGNITION" },
-      { "from": "PERCEPTION", "to": "EMOTION" },
-      { "from": "COGNITION", "to": "PERCEPTION" },
-      { "from": "COGNITION", "to": "EMOTION" },
-      { "from": "EMOTION", "to": "PERCEPTION" },
-      { "from": "EMOTION", "to": "COGNITION" }
-    ],
-    "SOCIAL_ACTION_internal": [
-      { "from": "HELPING", "to": "COMMUNICATION" },
-      { "from": "HELPING", "to": "CONTROL" },
-      { "from": "COMMUNICATION", "to": "HELPING" },
-      { "from": "COMMUNICATION", "to": "CONTROL" },
-      { "from": "CONTROL", "to": "HELPING" },
-      { "from": "CONTROL", "to": "COMMUNICATION" }
-    ],
-    "SYSTEM_ACTION_internal": [
-      { "from": "CREATION", "to": "VALIDATION" },
-      { "from": "CREATION", "to": "OPERATION" },
-      { "from": "VALIDATION", "to": "CREATION" },
-      { "from": "VALIDATION", "to": "OPERATION" },
-      { "from": "OPERATION", "to": "CREATION" },
-      { "from": "OPERATION", "to": "VALIDATION" }
-    ]
-  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ALIVE",  "to_cat1": "OBJECT",
+      "from_cat2": "HUMAN",  "to_cat2": "GAS"    },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ALIVE",  "to_cat1": "OBJECT",
+      "from_cat2": "ANIMAL", "to_cat2": "LIQUID" },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ALIVE",  "to_cat1": "OBJECT",
+      "from_cat2": "ANIMAL", "to_cat2": "GAS"    },
 
-  "adjective_subcategory_illegal_transitions": {
-    "description": "Illegal transitions between adjective sub-categories within the same POS category.",
-    "SIZE_internal": [
-      { "from": "LARGER", "to": "SMALLER" },
-      { "from": "SMALLER", "to": "LARGER" }
-    ],
-    "QUALITY_internal": [
-      { "from": "POSITIVE", "to": "NEGATIVE" },
-      { "from": "NEGATIVE", "to": "POSITIVE" }
-    ],
-    "EMOTION_internal": [
-      { "from": "POSITIVE", "to": "NEGATIVE" },
-      { "from": "NEGATIVE", "to": "POSITIVE" }
-    ],
-    "STATE_internal": [
-      { "from": "OCCUPANCY", "to": "ACCESSIBILITY" },
-      { "from": "OCCUPANCY", "to": "TEMPERATURE" },
-      { "from": "OCCUPANCY", "to": "CONDITION" },
-      { "from": "ACCESSIBILITY", "to": "OCCUPANCY" },
-      { "from": "ACCESSIBILITY", "to": "TEMPERATURE" },
-      { "from": "ACCESSIBILITY", "to": "CONDITION" },
-      { "from": "TEMPERATURE", "to": "OCCUPANCY" },
-      { "from": "TEMPERATURE", "to": "ACCESSIBILITY" },
-      { "from": "TEMPERATURE", "to": "CONDITION" },
-      { "from": "CONDITION", "to": "OCCUPANCY" },
-      { "from": "CONDITION", "to": "ACCESSIBILITY" },
-      { "from": "CONDITION", "to": "TEMPERATURE" }
-    ]
-  }
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ALIVE",  "to_cat1": "PLACE",
+      "from_cat2": "HUMAN",  "to_cat2": "STRUCTURE" },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ALIVE",  "to_cat1": "PLACE",
+      "from_cat2": "ANIMAL", "to_cat2": "URBAN"     },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ALIVE",  "to_cat1": "PLACE",
+      "from_cat2": "ANIMAL", "to_cat2": "STRUCTURE" },
+
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "ALIVE",
+      "from_cat2": "GAS",    "to_cat2": "HUMAN"  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "ALIVE",
+      "from_cat2": "LIQUID", "to_cat2": "ANIMAL" },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "ALIVE",
+      "from_cat2": "GAS",    "to_cat2": "ANIMAL" },
+
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "PLACE",
+      "from_cat2": "GAS",    "to_cat2": "STRUCTURE" },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "PLACE",
+      "from_cat2": "LIQUID", "to_cat2": "URBAN"     },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "PLACE",
+      "from_cat2": "GAS",    "to_cat2": "NATURAL"   },
+
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "DEVICE",
+      "from_cat2": "GAS",    "to_cat2": "ELECTRONIC" },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "DEVICE",
+      "from_cat2": "LIQUID", "to_cat2": "TRANSPORT"  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "OBJECT", "to_cat1": "DEVICE",
+      "from_cat2": "GAS",    "to_cat2": "TRANSPORT"  },
+
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "ALIVE",
+      "from_cat2": "NATURAL",   "to_cat2": "HUMAN"  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "ALIVE",
+      "from_cat2": "STRUCTURE", "to_cat2": "HUMAN"  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "ALIVE",
+      "from_cat2": "STRUCTURE", "to_cat2": "ANIMAL" },
+
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "OBJECT",
+      "from_cat2": "NATURAL",   "to_cat2": "FIRM"   },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "OBJECT",
+      "from_cat2": "STRUCTURE", "to_cat2": "GAS"    },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "OBJECT",
+      "from_cat2": "URBAN",     "to_cat2": "GAS"    },
+
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "DEVICE",
+      "from_cat2": "NATURAL",   "to_cat2": "ELECTRONIC" },
+      { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "DEVICE",
+      "from_cat2": "STRUCTURE", "to_cat2": "TRANSPORT"  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "PLACE",  "to_cat1": "DEVICE",
+      "from_cat2": "STRUCTURE", "to_cat2": "ELECTRONIC" },
+
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ABSTRACT", "to_cat1": "OBJECT",
+      "from_cat2": "SIGNAL",  "to_cat2": "FIRM"   },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ABSTRACT", "to_cat1": "OBJECT",
+      "from_cat2": "STATE",   "to_cat2": "GAS"    },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ABSTRACT", "to_cat1": "OBJECT",
+      "from_cat2": "SIGNAL",  "to_cat2": "LIQUID" },
+
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ABSTRACT", "to_cat1": "DEVICE",
+      "from_cat2": "CONCEPT", "to_cat2": "TRANSPORT"  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ABSTRACT", "to_cat1": "DEVICE",
+      "from_cat2": "STATE",   "to_cat2": "TRANSPORT"  },
+    { "from_pos": "NOUN", "to_pos": "NOUN", "from_cat1": "ABSTRACT", "to_cat1": "DEVICE",
+      "from_cat2": "SIGNAL",  "to_cat2": "TRANSPORT"  },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ALIVE",   "to_cat1": "QUALITY",
+      "from_cat2": "HUMAN",  "to_cat2": "NEGATIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ALIVE",   "to_cat1": "QUALITY",
+      "from_cat2": "ANIMAL", "to_cat2": "POSITIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ALIVE",   "to_cat1": "QUALITY",
+      "from_cat2": "ANIMAL", "to_cat2": "NEGATIVE" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ALIVE",   "to_cat1": "STATE",
+      "from_cat2": "HUMAN",  "to_cat2": "TEMPERATURE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ALIVE",   "to_cat1": "STATE",
+      "from_cat2": "ANIMAL", "to_cat2": "CONDITION"   },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ALIVE",   "to_cat1": "STATE",
+      "from_cat2": "ANIMAL", "to_cat2": "OCCUPANCY"   },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "SIZE",
+      "from_cat2": "GAS",    "to_cat2": "LARGER"  },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "SIZE",
+      "from_cat2": "GAS",    "to_cat2": "SMALLER" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "SIZE",
+      "from_cat2": "LIQUID", "to_cat2": "LARGER"  },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "QUALITY",
+      "from_cat2": "GAS",    "to_cat2": "POSITIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "QUALITY",
+      "from_cat2": "GAS",    "to_cat2": "NEGATIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "QUALITY",
+      "from_cat2": "LIQUID", "to_cat2": "NEGATIVE" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "STATE",
+      "from_cat2": "GAS",    "to_cat2": "OCCUPANCY"     },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "STATE",
+      "from_cat2": "GAS",    "to_cat2": "CONDITION"     },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "OBJECT",  "to_cat1": "STATE",
+      "from_cat2": "LIQUID", "to_cat2": "ACCESSIBILITY" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "SIZE",
+      "from_cat2": "TOOL",       "to_cat2": "LARGER"  },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "SIZE",
+      "from_cat2": "ELECTRONIC", "to_cat2": "SMALLER" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "SIZE",
+      "from_cat2": "TRANSPORT",  "to_cat2": "SMALLER" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "QUALITY",
+      "from_cat2": "TOOL",       "to_cat2": "NEGATIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "QUALITY",
+      "from_cat2": "ELECTRONIC", "to_cat2": "NEGATIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "QUALITY",
+      "from_cat2": "TRANSPORT",  "to_cat2": "NEGATIVE" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "STATE",
+      "from_cat2": "TOOL",       "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "STATE",
+      "from_cat2": "ELECTRONIC", "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "DEVICE",  "to_cat1": "STATE",
+      "from_cat2": "TRANSPORT",  "to_cat2": "ACCESSIBILITY" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "SIZE",
+      "from_cat2": "NATURAL",   "to_cat2": "SMALLER" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "SIZE",
+      "from_cat2": "STRUCTURE", "to_cat2": "SMALLER" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "SIZE",
+      "from_cat2": "URBAN",     "to_cat2": "LARGER"  },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "QUALITY",
+      "from_cat2": "NATURAL",   "to_cat2": "NEGATIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "QUALITY",
+      "from_cat2": "STRUCTURE", "to_cat2": "POSITIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "QUALITY",
+      "from_cat2": "URBAN",     "to_cat2": "NEGATIVE" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "STATE",
+      "from_cat2": "NATURAL",   "to_cat2": "OCCUPANCY"     },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "STATE",
+      "from_cat2": "STRUCTURE", "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "PLACE",   "to_cat1": "STATE",
+      "from_cat2": "URBAN",     "to_cat2": "ACCESSIBILITY" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "SIZE",
+      "from_cat2": "SIGNAL",  "to_cat2": "LARGER"  },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "SIZE",
+      "from_cat2": "STATE",   "to_cat2": "SMALLER" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "SIZE",
+      "from_cat2": "CONCEPT", "to_cat2": "LARGER"  },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "QUALITY",
+      "from_cat2": "SIGNAL",  "to_cat2": "POSITIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "QUALITY",
+      "from_cat2": "STATE",   "to_cat2": "NEGATIVE" },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "QUALITY",
+      "from_cat2": "CONCEPT", "to_cat2": "NEGATIVE" },
+
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "STATE",
+      "from_cat2": "SIGNAL",  "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "STATE",
+      "from_cat2": "STATE",   "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "NOUN", "to_pos": "ADJ",  "from_cat1": "ABSTRACT","to_cat1": "STATE",
+      "from_cat2": "CONCEPT", "to_cat2": "OCCUPANCY"     },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "PHYSICAL_ACTION",
+      "from_cat2": "HUMAN",  "to_cat2": "CONSUMPTION"  },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "PHYSICAL_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "MANIPULATION" },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "PHYSICAL_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "LOCOMOTION"   },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "MENTAL_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "COGNITION" },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "MENTAL_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "EMOTION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "MENTAL_ACTION",
+      "from_cat2": "HUMAN",  "to_cat2": "EMOTION"   },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "SOCIAL_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "HELPING"       },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "SOCIAL_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "COMMUNICATION" },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "SOCIAL_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "CONTROL"       },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "CREATION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "ANIMAL", "to_cat2": "VALIDATION" },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ALIVE",   "to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "HUMAN",  "to_cat2": "CREATION"   },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "DEVICE",  "to_cat1": "PHYSICAL_ACTION",
+      "from_cat2": "TOOL",       "to_cat2": "CONSUMPTION" },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "DEVICE",  "to_cat1": "PHYSICAL_ACTION",
+      "from_cat2": "ELECTRONIC", "to_cat2": "LOCOMOTION"  },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "DEVICE",  "to_cat1": "PHYSICAL_ACTION",
+      "from_cat2": "ELECTRONIC", "to_cat2": "CONSUMPTION" },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "DEVICE",  "to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "TRANSPORT",  "to_cat2": "VALIDATION" },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "DEVICE",  "to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "TRANSPORT",  "to_cat2": "CREATION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "DEVICE",  "to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "TOOL",       "to_cat2": "CREATION"   },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "MENTAL_ACTION",
+      "from_cat2": "STATE",   "to_cat2": "EMOTION"    },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "MENTAL_ACTION",
+      "from_cat2": "SIGNAL",  "to_cat2": "EMOTION"    },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "MENTAL_ACTION",
+      "from_cat2": "CONCEPT", "to_cat2": "PERCEPTION" },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "SOCIAL_ACTION",
+      "from_cat2": "STATE",   "to_cat2": "HELPING"       },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "SOCIAL_ACTION",
+      "from_cat2": "SIGNAL",  "to_cat2": "HELPING"       },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "SOCIAL_ACTION",
+      "from_cat2": "SIGNAL",  "to_cat2": "COMMUNICATION" },
+
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "CONCEPT", "to_cat2": "OPERATION"  },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "STATE",   "to_cat2": "CREATION"   },
+    { "from_pos": "NOUN", "to_pos": "VERB", "from_cat1": "ABSTRACT","to_cat1": "SYSTEM_ACTION",
+      "from_cat2": "SIGNAL",  "to_cat2": "CREATION"   },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "ALIVE",
+      "from_cat2": "POSITIVE", "to_cat2": "ANIMAL" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "ALIVE",
+      "from_cat2": "NEGATIVE", "to_cat2": "HUMAN"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "ALIVE",
+      "from_cat2": "NEGATIVE", "to_cat2": "ANIMAL" },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "PLACE",
+      "from_cat2": "POSITIVE", "to_cat2": "STRUCTURE" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "PLACE",
+      "from_cat2": "NEGATIVE", "to_cat2": "URBAN"     },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "PLACE",
+      "from_cat2": "NEGATIVE", "to_cat2": "STRUCTURE" },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "ABSTRACT",
+      "from_cat2": "POSITIVE", "to_cat2": "SIGNAL"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "ABSTRACT",
+      "from_cat2": "NEGATIVE", "to_cat2": "CONCEPT" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "EMOTION", "to_cat1": "ABSTRACT",
+      "from_cat2": "NEGATIVE", "to_cat2": "STATE"   },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "ALIVE",
+      "from_cat2": "LARGER",  "to_cat2": "ANIMAL" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "ALIVE",
+      "from_cat2": "SMALLER", "to_cat2": "HUMAN"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "ALIVE",
+      "from_cat2": "SMALLER", "to_cat2": "ANIMAL" },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "OBJECT",
+      "from_cat2": "LARGER",  "to_cat2": "GAS"    },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "OBJECT",
+      "from_cat2": "SMALLER", "to_cat2": "GAS"    },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "OBJECT",
+      "from_cat2": "LARGER",  "to_cat2": "LIQUID" },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "DEVICE",
+      "from_cat2": "LARGER",  "to_cat2": "ELECTRONIC" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "DEVICE",
+      "from_cat2": "SMALLER", "to_cat2": "TRANSPORT"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "DEVICE",
+      "from_cat2": "SMALLER", "to_cat2": "TOOL"       },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "PLACE",
+      "from_cat2": "LARGER",  "to_cat2": "STRUCTURE" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "PLACE",
+      "from_cat2": "SMALLER", "to_cat2": "URBAN"     },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "PLACE",
+      "from_cat2": "SMALLER", "to_cat2": "NATURAL"   },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "ABSTRACT",
+      "from_cat2": "LARGER",  "to_cat2": "SIGNAL"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "ABSTRACT",
+      "from_cat2": "SMALLER", "to_cat2": "STATE"   },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "SIZE",    "to_cat1": "ABSTRACT",
+      "from_cat2": "LARGER",  "to_cat2": "CONCEPT" },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "ALIVE",
+      "from_cat2": "NEGATIVE", "to_cat2": "HUMAN"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "ALIVE",
+      "from_cat2": "NEGATIVE", "to_cat2": "ANIMAL" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "ALIVE",
+      "from_cat2": "POSITIVE", "to_cat2": "ANIMAL" },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "PLACE",
+      "from_cat2": "NEGATIVE", "to_cat2": "NATURAL"   },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "PLACE",
+      "from_cat2": "NEGATIVE", "to_cat2": "STRUCTURE" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "PLACE",
+      "from_cat2": "POSITIVE", "to_cat2": "STRUCTURE" },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "ABSTRACT",
+      "from_cat2": "POSITIVE", "to_cat2": "SIGNAL"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "ABSTRACT",
+      "from_cat2": "NEGATIVE", "to_cat2": "CONCEPT" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "QUALITY", "to_cat1": "ABSTRACT",
+      "from_cat2": "NEGATIVE", "to_cat2": "STATE"   },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "STATE",   "to_cat1": "ALIVE",
+      "from_cat2": "TEMPERATURE", "to_cat2": "HUMAN"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "STATE",   "to_cat1": "ALIVE",
+      "from_cat2": "CONDITION",   "to_cat2": "ANIMAL" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "STATE",   "to_cat1": "ALIVE",
+      "from_cat2": "OCCUPANCY",   "to_cat2": "ANIMAL" },
+
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "STATE",   "to_cat1": "ABSTRACT",
+      "from_cat2": "OCCUPANCY",     "to_cat2": "SIGNAL"  },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "STATE",   "to_cat1": "ABSTRACT",
+      "from_cat2": "TEMPERATURE",   "to_cat2": "CONCEPT" },
+    { "from_pos": "ADJ",  "to_pos": "NOUN", "from_cat1": "STATE",   "to_cat1": "ABSTRACT",
+      "from_cat2": "ACCESSIBILITY", "to_cat2": "STATE"   },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "PHYSICAL_ACTION", "to_cat1": "QUALITY",
+      "from_cat2": "LOCOMOTION",   "to_cat2": "NEGATIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "PHYSICAL_ACTION", "to_cat1": "QUALITY",
+      "from_cat2": "CONSUMPTION",  "to_cat2": "POSITIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "PHYSICAL_ACTION", "to_cat1": "QUALITY",
+      "from_cat2": "MANIPULATION", "to_cat2": "POSITIVE" },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "PHYSICAL_ACTION", "to_cat1": "STATE",
+      "from_cat2": "LOCOMOTION",   "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "PHYSICAL_ACTION", "to_cat1": "STATE",
+      "from_cat2": "CONSUMPTION",  "to_cat2": "ACCESSIBILITY" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "PHYSICAL_ACTION", "to_cat1": "STATE",
+      "from_cat2": "MANIPULATION", "to_cat2": "TEMPERATURE"   },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "COGNITION",  "to_cat2": "NEGATIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "PERCEPTION", "to_cat2": "NEGATIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "EMOTION",    "to_cat2": "POSITIVE" },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "EMOTION",
+      "from_cat2": "COGNITION",  "to_cat2": "NEGATIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "EMOTION",
+      "from_cat2": "PERCEPTION", "to_cat2": "POSITIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "EMOTION",
+      "from_cat2": "EMOTION",    "to_cat2": "POSITIVE" },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "COGNITION",  "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "PERCEPTION", "to_cat2": "OCCUPANCY"     },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "MENTAL_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "EMOTION",    "to_cat2": "ACCESSIBILITY" },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "HELPING",       "to_cat2": "NEGATIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "CONTROL",       "to_cat2": "POSITIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "COMMUNICATION", "to_cat2": "NEGATIVE" },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "EMOTION",
+      "from_cat2": "HELPING",       "to_cat2": "NEGATIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "EMOTION",
+      "from_cat2": "CONTROL",       "to_cat2": "POSITIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "EMOTION",
+      "from_cat2": "COMMUNICATION", "to_cat2": "NEGATIVE" },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "CONTROL",       "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "HELPING",       "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SOCIAL_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "COMMUNICATION", "to_cat2": "OCCUPANCY"     },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "SIZE",
+      "from_cat2": "CREATION",   "to_cat2": "SMALLER" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "SIZE",
+      "from_cat2": "VALIDATION", "to_cat2": "LARGER"  },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "SIZE",
+      "from_cat2": "OPERATION",  "to_cat2": "LARGER"  },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "CREATION",   "to_cat2": "NEGATIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "VALIDATION", "to_cat2": "POSITIVE" },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "QUALITY",
+      "from_cat2": "OPERATION",  "to_cat2": "POSITIVE" },
+
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "CREATION",   "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "VALIDATION", "to_cat2": "TEMPERATURE"   },
+    { "from_pos": "VERB", "to_pos": "ADJ",  "from_cat1": "SYSTEM_ACTION",   "to_cat1": "STATE",
+      "from_cat2": "OPERATION",  "to_cat2": "ACCESSIBILITY" },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "ALIVE",
+      "from_cat2": "CONSUMPTION",  "to_cat2": "HUMAN"  },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "ALIVE",
+      "from_cat2": "CONSUMPTION",  "to_cat2": "ANIMAL" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "ALIVE",
+      "from_cat2": "LOCOMOTION",   "to_cat2": "ANIMAL" },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "PLACE",
+      "from_cat2": "CONSUMPTION",  "to_cat2": "STRUCTURE" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "PLACE",
+      "from_cat2": "LOCOMOTION",   "to_cat2": "STRUCTURE" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "PLACE",
+      "from_cat2": "MANIPULATION", "to_cat2": "NATURAL"   },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "ABSTRACT",
+      "from_cat2": "CONSUMPTION",  "to_cat2": "SIGNAL"  },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "ABSTRACT",
+      "from_cat2": "LOCOMOTION",   "to_cat2": "STATE"   },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "PHYSICAL_ACTION", "to_cat1": "ABSTRACT",
+      "from_cat2": "MANIPULATION", "to_cat2": "CONCEPT" },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "ALIVE",
+      "from_cat2": "PERCEPTION", "to_cat2": "HUMAN"  },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "ALIVE",
+      "from_cat2": "EMOTION",    "to_cat2": "HUMAN"  },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "ALIVE",
+      "from_cat2": "EMOTION",    "to_cat2": "ANIMAL" },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "PERCEPTION", "to_cat2": "STRUCTURE" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "COGNITION",  "to_cat2": "NATURAL"   },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "EMOTION",    "to_cat2": "STRUCTURE" },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "COGNITION",  "to_cat2": "SIGNAL"  },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "EMOTION",    "to_cat2": "CONCEPT" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "MENTAL_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "EMOTION",    "to_cat2": "SIGNAL"  },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "ALIVE",
+      "from_cat2": "CONTROL",       "to_cat2": "ANIMAL" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "ALIVE",
+      "from_cat2": "COMMUNICATION", "to_cat2": "ANIMAL" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "ALIVE",
+      "from_cat2": "HELPING",       "to_cat2": "ANIMAL" },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "CONTROL",       "to_cat2": "NATURAL"   },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "COMMUNICATION", "to_cat2": "STRUCTURE" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "HELPING",       "to_cat2": "NATURAL"   },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "CONTROL",       "to_cat2": "SIGNAL"  },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "COMMUNICATION", "to_cat2": "STATE"   },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SOCIAL_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "HELPING",       "to_cat2": "CONCEPT" },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "OBJECT",
+      "from_cat2": "CREATION",   "to_cat2": "GAS"    },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "OBJECT",
+      "from_cat2": "VALIDATION", "to_cat2": "LIQUID" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "OBJECT",
+      "from_cat2": "OPERATION",  "to_cat2": "GAS"    },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "CREATION",   "to_cat2": "NATURAL"   },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "VALIDATION", "to_cat2": "NATURAL"   },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "PLACE",
+      "from_cat2": "OPERATION",  "to_cat2": "STRUCTURE" },
+
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "CREATION",   "to_cat2": "STATE"   },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "VALIDATION", "to_cat2": "CONCEPT" },
+    { "from_pos": "VERB", "to_pos": "NOUN", "from_cat1": "SYSTEM_ACTION",   "to_cat1": "ABSTRACT",
+      "from_cat2": "OPERATION",  "to_cat2": "CONCEPT" }
+
+  ]
 }
