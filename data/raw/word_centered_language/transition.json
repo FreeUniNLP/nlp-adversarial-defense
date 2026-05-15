@@ -1,11 +1,28 @@
 {
-  "transitions": {
-    "START": ["ADJ", "NOUN"],
-    "ADJ":   ["NOUN"],
-    "NOUN":  ["VERB", "END"],
-    "VERB":  ["ADJ", "NOUN"],
-    "END":   []
-  },
-  "required_start": "START",
-  "required_end":   "END"
+  "start_symbol": "S",
+
+  "rules": {
+
+    "S": [
+      ["NP"]
+    ],
+
+    "VP_CHAIN": [
+      ["VP"],
+      ["VP", "VP_CHAIN"]
+    ],
+
+    "VP": [
+      ["VERB"],
+      ["VERB", "NP"]
+    ],
+
+    "NP": [
+      ["NOUN"],
+      ["ADJ", "NOUN"],
+      ["ADJ", "ADJ", "NOUN"]
+    ],
+
+    "SP":
+  }
 }
