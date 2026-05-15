@@ -41,3 +41,9 @@ class AdjectiveToNounConstraint:
     axes_min: AxesEntry
     axes_max: AxesEntry
 
+@dataclass
+class AdjectiveEntry:
+    tag: TagEntry
+    axes: AxesEntry
+    adjective_to_noun_constraint: AdjectiveToNounConstraint
+
