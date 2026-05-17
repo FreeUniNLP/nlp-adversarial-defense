@@ -62,7 +62,7 @@ class CFG:
             chosen_noun = random.choice(valid_nouns)
             words.extend([chosen_adj.word, chosen_noun.word])
             context['subject_adjs'] = [chosen_adj]
-            context['subject_noun'] = [chosen_noun]
+            context['subject_noun'] = chosen_noun
         else:
             raise ValueError(f"Unexpected Subject Structure: {subject_tokens}")
 
@@ -99,6 +99,9 @@ class CFG:
                 valid_verbs = [v for v in valid_verbs if v.verb_argument.verb_to_object_constraint is not None]
             else:
                 raise ValueError(f"Too many object as the argument of verb in {chunk}")
+
+            if not valid_verbs:
+                raise ValueError(f"No verbs fit the subject constraints and object structure: {chunk}")
 
             chosen_verb = random.choice(valid_verbs)
             words.append(chosen_verb.word)
