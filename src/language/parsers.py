@@ -1,9 +1,9 @@
 from pathlib import Path
+from typing import Set
 
-from src.language.entities import NounEntry, TagEntry, axisEntry, VerbEntry, AdjectiveEntry, VerbArgumentEntry, \
+from src.language.entities.word_entity import NounEntry, TagEntry, AxisEntry, VerbEntry, AdjectiveEntry, VerbArgumentEntry, \
     VerbToNounConstraintEntry, AdjectiveToNounConstraint
 from src.language.reader import JsonReader
-
 
 class LexiconParser:
 
@@ -25,7 +25,7 @@ class LexiconParser:
 
         for word, values in data.items():
             tags = TagEntry(tag = values["tags"])
-            axis = axisEntry(**values["axis"])
+            axis = AxisEntry(**values["axis"])
 
             entry = NounEntry(
                 word=word,
@@ -44,7 +44,7 @@ class LexiconParser:
 
         for word, values in data.items():
             tags = TagEntry(tag=values["tags"])
-            axis = axisEntry(**values["axis"])
+            axis = AxisEntry(**values["axis"])
             arguments = values["arguments"]
             verb_to_subject_constraint =  None
             verb_to_object_constraint = None
@@ -53,8 +53,8 @@ class LexiconParser:
                 if argument["role"] == "subject":
 
                     tags_any = TagEntry(tag = constraint["tags_any"])
-                    min_axis = axisEntry(**constraint["min_axis"])
-                    max_axis = axisEntry(**constraint["max_axis"])
+                    min_axis = AxisEntry(**constraint["min_axis"])
+                    max_axis = AxisEntry(**constraint["max_axis"])
                     verb_to_subject_constraint = VerbToNounConstraintEntry(
                         tag=tags_any,
                         axis_min=min_axis,
@@ -62,8 +62,8 @@ class LexiconParser:
                     )
                 else:
                     tags_any = TagEntry(tag=constraint["tags_any"])
-                    min_axis = axisEntry(**constraint["min_axis"])
-                    max_axis = axisEntry(**constraint["max_axis"])
+                    min_axis = AxisEntry(**constraint["min_axis"])
+                    max_axis = AxisEntry(**constraint["max_axis"])
                     verb_to_object_constraint = VerbToNounConstraintEntry(
                         tag=tags_any,
                         axis_min=min_axis,
@@ -94,11 +94,11 @@ class LexiconParser:
 
         for word, values in data.items():
             tags = TagEntry(tag=values["tags"])
-            axis = axisEntry(physicality=values["modifies"])
+            axis = AxisEntry(physicality=values["modifies"])
             constraints = values["constraints"]
             tags_any = TagEntry(tag=constraints["tags_any"])
-            axis_min = axisEntry(**constraints["min_axis"])
-            axis_max = axisEntry(**constraints["max_axis"])
+            axis_min = AxisEntry(**constraints["min_axis"])
+            axis_max = AxisEntry(**constraints["max_axis"])
             adjective_to_noun_constraint = AdjectiveToNounConstraint(
                 tag=tags_any,
                 axis_min=axis_min,

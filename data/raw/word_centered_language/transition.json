@@ -1,6 +1,5 @@
 {
-  "start_symbol:": "START",
-  "end_symbol": "END",
+  "start_symbol": "START",
   "rules": {
     "START": [
         ["SUBJECT_TERM"]
