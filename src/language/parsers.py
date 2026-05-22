@@ -136,3 +136,33 @@ class LexiconParser:
             entries.append(entry)
 
         return entries
+
+    @staticmethod
+    def parse_all_tags(path: str | Path) -> tuple[set, set, set]:
+        """Extract all unique tags used in nouns, verbs, and adjectives.
+        
+        Returns:
+            tuple[set, set, set]: (noun_tags, verb_tags, adjective_tags) each containing unique tags
+        """
+        raw = JsonReader.read(path)
+        
+        noun_tags = set()
+        verb_tags = set()
+        adjective_tags = set()
+        
+        # Collect noun tags
+        for word, values in raw["NOUNS"].items():
+            if "tags" in values:
+                noun_tags.update(values["tags"])
+        
+        # Collect verb tags
+        for word, values in raw["VERBS"].items():
+            if "tags" in values:
+                verb_tags.update(values["tags"])
+        
+        # Collect adjective tags
+        for word, values in raw["ADJECTIVES"].items():
+            if "tags" in values:
+                adjective_tags.update(values["tags"])
+        
+        return noun_tags, verb_tags, adjective_tags
