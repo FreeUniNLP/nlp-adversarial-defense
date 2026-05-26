@@ -35,16 +35,17 @@ def generate_dataset(cfg: CFG, target_count: int) -> list[str]:
 
 
 def main():
+    words_path = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "words.json"
+    transition_path = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "transition.json"
+
     # 1. Parse your dataset strings into your structured entry objects
-    nouns, verbs, adjectives = LexiconParser.parse(
-        "/home/konstantine/Documents/work/nlp/nlp-adversarial-defense/data/raw/word_centered_language/words.json"
-    )
+    nouns, verbs, adjectives = LexiconParser.parse(words_path)
 
     print(f"Loaded Lexicon Component Counts -> Nouns: {len(nouns)}, Verbs: {len(verbs)}, Adjectives: {len(adjectives)}")
 
     # 2. Instantiate your CFG while injecting the parsed lexicon pools
     cfg = CFG.from_json_to_dataclass(
-        file_path="/home/konstantine/Documents/work/nlp/nlp-adversarial-defense/data/raw/word_centered_language/transition.json",
+        file_path=transition_path,
         nouns=nouns,
         verbs=verbs,
         adjectives=adjectives

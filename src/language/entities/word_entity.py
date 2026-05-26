@@ -4,8 +4,6 @@ from typing import List, Dict, Optional
 
 from src.language.reader import JsonReader
 
-
-# --- Your Provided Dataclasses ---
 @dataclass
 class AxisEntry:
     agency: int = 0
