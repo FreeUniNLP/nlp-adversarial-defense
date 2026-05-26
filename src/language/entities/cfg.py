@@ -1,18 +1,14 @@
 import random
 from dataclasses import dataclass, field
 
+from src.language.entities.cfg_base import CFGBase
 from src.language.entities.word_entity import NounEntry, VerbEntry, AdjectiveEntry
 from src.language.reader import JsonReader
 
 
 @dataclass
-class CFG:
+class CFG(CFGBase):
     start_symbol: str
-    rules: dict[str, list[list[str]]] = field(default_factory=dict)
-
-    nouns: list[NounEntry] = field(default_factory=list)
-    verbs: list[VerbEntry] = field(default_factory=list)
-    adjectives: list[AdjectiveEntry] = field(default_factory=list)
 
     # Precomputed per-verb lookup tables — built once in __post_init__.
     # _adj1_by_verb[verb_word]  = [(adj, [valid_nouns])]  for ADJ NOUN objects
@@ -59,19 +55,6 @@ class CFG:
                     if nouns:
                         adj2_pairs.append((a1, a2, nouns))
             self._adj2_by_verb[verb.word] = adj2_pairs
-
-    @classmethod
-    def from_json_to_dataclass(cls, file_path: str, nouns=None, verbs=None, adjectives=None) -> 'CFG':
-        data = JsonReader.read(file_path)
-
-        start_key = 'start_symbol'
-        return cls(
-            start_symbol=data.get(start_key),
-            rules=data.get("rules", {}),
-            nouns=nouns or [],
-            verbs=verbs or [],
-            adjectives=adjectives or []
-        )
 
     def generate_skeleton(self, max_depth: int = 10) -> list[str]:
         return self._expand([self.start_symbol], current_depth=0, max_depth=max_depth)
@@ -189,46 +172,15 @@ class CFG:
                 words.extend([chosen_a1.word, chosen_a2.word, random.choice(final_nouns).word])
         return  " ".join(words)
 
-    def _noun_satisfies_constraint(self, noun: NounEntry, constraint, adjectives: list[AdjectiveEntry] = None) -> bool:
-        """Returns True if the noun shares a tag and its cumulative axis (Noun + Adjectives) fits the bounds."""
-        # 1. Tag Overlap Check (Always run against base noun metadata tags)
-        if not any(t in noun.tag.tag for t in constraint.tag.tag):
-            return False
+    @classmethod
+    def from_json(cls, file_path: str, nouns=None, verbs=None, adjectives=None) -> 'CFG':
+        data = JsonReader.read(file_path)
 
-        # 2. Extract Base Axis Values
-        agency = noun.axis.agency
-        physicality = noun.axis.physicality
-        social = noun.axis.social
-        system = noun.axis.system
-
-        # Cumulative additions: Add modifying adjective weights if present
-        if adjectives:
-            for adj in adjectives:
-                agency += adj.axis.agency
-                physicality += adj.axis.physicality
-                social += adj.axis.social
-                system += adj.axis.system
-
-        # 3. Axis Boundary Check (min <= cumulative_value <= max)
-        c_min, c_max = constraint.axis_min, constraint.axis_max
-        return (
-                c_min.agency <= agency <= c_max.agency and
-                c_min.physicality <= physicality <= c_max.physicality and
-                c_min.social <= social <= c_max.social and
-                c_min.system <= system <= c_max.system
+        start_key = 'start_symbol'
+        return cls(
+            start_symbol=data.get(start_key),
+            rules=data.get("rules", {}),
+            nouns=nouns or [],
+            verbs=verbs or [],
+            adjectives=adjectives or []
         )
-
-    def _do_adjectives_overlap(self, adj1: AdjectiveEntry, adj2: AdjectiveEntry, nouns_pool: list[NounEntry]) -> bool:
-        """Checks if two adjectives share a tag overlap and have at least one valid noun in common."""
-        # Tag overlap check between the two constraints
-        shared_tags = set(adj1.adjective_to_noun_constraint.tag.tag) & set(adj2.adjective_to_noun_constraint.tag.tag)
-        if not shared_tags:
-            return False
-
-        # Check if there is at least one noun that satisfies both adjectives
-        for noun in nouns_pool:
-            if self._noun_satisfies_constraint(noun, adj1.adjective_to_noun_constraint) and \
-                    self._noun_satisfies_constraint(noun, adj2.adjective_to_noun_constraint):
-                return True
-
-        return False
