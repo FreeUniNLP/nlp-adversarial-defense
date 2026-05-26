@@ -1,0 +1,30 @@
+{
+  "start_symbol": "START",
+  "rules": {
+    "START": [
+        ["SUBJECT_TERM"]
+    ],
+
+    "OBJECT": [
+      ["NOUN"],
+      ["ADJ", "NOUN"],
+      ["ADJ", "ADJ", "NOUN"]
+    ],
+
+    "SUBJECT": [
+      ["NOUN"],
+      ["ADJ", "NOUN"]
+    ],
+
+    "VERB_TERM": [
+      ["VERB"],
+      ["VERB", "OBJECT"],
+      ["VERB", "OBJECT", "VERB_TERM"]
+    ],
+
+    "SUBJECT_TERM": [
+       ["SUBJECT", "VERB_TERM"]
+    ]
+  }
+}
+
