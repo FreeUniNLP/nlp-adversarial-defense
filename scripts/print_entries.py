@@ -33,7 +33,7 @@ def main():
         i += 1
     print(i)
 
-    cfg = CFG.from_json_to_dataclass(
+    cfg = CFG.from_json(
         file_path=TRANSITION_PATH,
         nouns=nouns,
         verbs=verbs,
