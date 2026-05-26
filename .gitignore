@@ -210,6 +210,9 @@ tempCodeRunnerFile.py
 # PyPI configuration file
 .pypirc
 
+# Model checkpoints
+data/models/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

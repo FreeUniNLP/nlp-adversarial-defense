@@ -14,6 +14,52 @@ class CFG:
     verbs: list[VerbEntry] = field(default_factory=list)
     adjectives: list[AdjectiveEntry] = field(default_factory=list)
 
+    # Precomputed per-verb lookup tables — built once in __post_init__.
+    # _adj1_by_verb[verb_word]  = [(adj, [valid_nouns])]  for ADJ NOUN objects
+    # _adj2_by_verb[verb_word]  = [(a1, a2, [valid_nouns])] for ADJ ADJ NOUN objects
+    _adj1_by_verb: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+    _adj2_by_verb: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+
+    def __post_init__(self):
+        self._build_verb_lookup_tables()
+
+    def _build_verb_lookup_tables(self):
+        """Precompute valid (adj, nouns) and (adj1, adj2, nouns) per verb object constraint.
+        Runs once at construction; eliminates the O(adj² × nouns) search from every sentence attempt."""
+        for verb in self.verbs:
+            c = verb.verb_argument.verb_to_object_constraint
+            if c is None:
+                continue
+
+            # ADJ NOUN objects
+            adj1_pairs = []
+            for adj in self.adjectives:
+                nouns = [
+                    n for n in self.nouns
+                    if self._noun_satisfies_constraint(n, adj.adjective_to_noun_constraint)
+                    and self._noun_satisfies_constraint(n, c, adjectives=[adj])
+                ]
+                if nouns:
+                    adj1_pairs.append((adj, nouns))
+            self._adj1_by_verb[verb.word] = adj1_pairs
+
+            # ADJ ADJ NOUN objects
+            adj2_pairs = []
+            for a1 in self.adjectives:
+                shared_tags = set(a1.adjective_to_noun_constraint.tag.tag)
+                for a2 in self.adjectives:
+                    if not (shared_tags & set(a2.adjective_to_noun_constraint.tag.tag)):
+                        continue
+                    nouns = [
+                        n for n in self.nouns
+                        if self._noun_satisfies_constraint(n, a1.adjective_to_noun_constraint)
+                        and self._noun_satisfies_constraint(n, a2.adjective_to_noun_constraint)
+                        and self._noun_satisfies_constraint(n, c, adjectives=[a1, a2])
+                    ]
+                    if nouns:
+                        adj2_pairs.append((a1, a2, nouns))
+            self._adj2_by_verb[verb.word] = adj2_pairs
+
     @classmethod
     def from_json_to_dataclass(cls, file_path: str, nouns=None, verbs=None, adjectives=None) -> 'CFG':
         data = JsonReader.read(file_path)
@@ -110,7 +156,7 @@ class CFG:
                 continue
 
             v_obj_constraint = chosen_verb.verb_argument.verb_to_object_constraint
-            valid_nouns = [n for n in self.nouns if n not in words]
+            valid_nouns = [n for n in self.nouns if n.word not in words]
 
             if object_structure == ['NOUN']:
                 valid_nouns_for_verb = [n for n in valid_nouns if self._noun_satisfies_constraint(n, v_obj_constraint)]
@@ -118,43 +164,28 @@ class CFG:
                 chosen_noun = random.choice(valid_nouns_for_verb)
                 words.append(chosen_noun.word)
             elif object_structure == ['ADJ', 'NOUN']:
-                valid_adjs = [
-                    a for a in self.adjectives if any(
-                        self._noun_satisfies_constraint(n, a.adjective_to_noun_constraint) and
-                        self._noun_satisfies_constraint(n, v_obj_constraint, adjectives=[a])
-                        for n in valid_nouns
-                    )
+                # Use precomputed (adj, nouns) pairs for this verb — just filter out already-used words
+                candidates = [
+                    (adj, [n for n in nouns if n.word not in words])
+                    for adj, nouns in self._adj1_by_verb.get(chosen_verb.word, [])
                 ]
-                if not valid_adjs: raise ValueError(
-                    f"No adjectives fit target constraints under verb '{chosen_verb.word}'")
-                chosen_adj = random.choice(valid_adjs)
-
-                final_nouns = [
-                    n for n in self.nouns
-                    if self._noun_satisfies_constraint(n, chosen_adj.adjective_to_noun_constraint) and
-                       self._noun_satisfies_constraint(n, v_obj_constraint, adjectives=[chosen_adj])
-                ]
+                candidates = [(adj, nouns) for adj, nouns in candidates if nouns]
+                if not candidates:
+                    raise ValueError(f"No adjectives fit target constraints under verb '{chosen_verb.word}'")
+                chosen_adj, final_nouns = random.choice(candidates)
                 words.extend([chosen_adj.word, random.choice(final_nouns).word])
 
             elif object_structure == ['ADJ', 'ADJ', 'NOUN']:
-                valid_pairs = []
-                for a1 in self.adjectives:
-                    for a2 in self.adjectives:
-                        if self._do_adjectives_overlap(a1, a2, self.nouns):
-                            possible_nouns = [
-                                n for n in valid_nouns if
-                                self._noun_satisfies_constraint(n, a1.adjective_to_noun_constraint) and
-                                self._noun_satisfies_constraint(n, a2.adjective_to_noun_constraint) and
-                                self._noun_satisfies_constraint(n, v_obj_constraint, adjectives=[a1, a2])
-                            ]
-                            if possible_nouns:
-                                valid_pairs.append((a1, a2, possible_nouns))
-
-                if not valid_pairs:
+                # Use precomputed (a1, a2, nouns) pairs for this verb — just filter out already-used words
+                candidates = [
+                    (a1, a2, [n for n in nouns if n.word not in words])
+                    for a1, a2, nouns in self._adj2_by_verb.get(chosen_verb.word, [])
+                ]
+                candidates = [(a1, a2, nouns) for a1, a2, nouns in candidates if nouns]
+                if not candidates:
                     raise ValueError(
                         f"No overlapping dual adjective pairs fit the requirements for verb '{chosen_verb.word}'")
-
-                chosen_a1, chosen_a2, final_nouns = random.choice(valid_pairs)
+                chosen_a1, chosen_a2, final_nouns = random.choice(candidates)
                 words.extend([chosen_a1.word, chosen_a2.word, random.choice(final_nouns).word])
         return  " ".join(words)
 
