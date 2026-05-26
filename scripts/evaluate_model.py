@@ -22,7 +22,7 @@ from src.model.tokenizer import WordTokenizer
 from src.model.transformer import MiniGPT
 from src.language.parsers import LexiconParser
 from src.language.entities.cfg import CFG
-from src.evaluation.sentence_validator import CFGValidator
+from src.language.entities.cfg_validator import CFGValidator
 
 WORDS_PATH      = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "words.json"
 TRANSITION_PATH = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "transition.json"
@@ -52,7 +52,7 @@ def load_model(corpus_size: int, device: str) -> tuple[MiniGPT, WordTokenizer]:
 
 def build_validator() -> CFGValidator:
     nouns, verbs, adjectives = LexiconParser.parse(WORDS_PATH)
-    cfg = CFG.from_json_to_dataclass(
+    cfg = CFG.from_json(
         file_path=TRANSITION_PATH, nouns=nouns, verbs=verbs, adjectives=adjectives
     )
     return CFGValidator.from_cfg(cfg)

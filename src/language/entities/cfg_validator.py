@@ -4,20 +4,16 @@ from typing import Optional
 from src.language.entities.word_entity import NounEntry, VerbEntry, AdjectiveEntry
 from src.language.reader import JsonReader
 
-#TODO
 
 @dataclass
 class ValidationResult:
     is_valid: bool
     error: Optional[str] = None
 
-    def __bool__(self):
-        return self.is_valid
-
+    def __bool__(self): return self.is_valid
     def __repr__(self):
-        if self.is_valid:
-            return "ValidationResult(valid=True)"
-        return f"ValidationResult(valid=False, error='{self.error}')"
+        return "ValidationResult(valid=True)" if self.is_valid \
+            else f"ValidationResult(valid=False, error='{self.error}')"
 
 
 @dataclass
@@ -29,12 +25,6 @@ class CFGValidator:
 
     Mirrors the generation logic of CFG exactly, but in reverse (parse → validate).
     """
-
-    rules: dict[str, list[list[str]]]
-
-    nouns: list[NounEntry] = field(default_factory=list)
-    verbs: list[VerbEntry] = field(default_factory=list)
-    adjectives: list[AdjectiveEntry] = field(default_factory=list)
 
     # ------------------------------------------------------------------ #
     #  Public entry point                                                  #
@@ -68,7 +58,6 @@ class CFGValidator:
 
         return ValidationResult(True)
 
-    #  Step 1 – Token classification                                       #
     def _classify_tokens(self, tokens: list[str]) -> tuple[list[str], Optional[str]]:
         """
         Map each surface word to its abstract skeleton label (NOUN / VERB / ADJ).
@@ -95,61 +84,6 @@ class CFGValidator:
                 skeleton.append(hits[0])
 
         return skeleton, None
-
-    #  Step 2 – Skeleton validation                                        #
-    def _validate_skeleton(self, skeleton: list[str]) -> Optional[str]:
-        """
-        Try to parse `skeleton` as a derivation of the start symbol.
-        Uses recursive descent over the CFG rules.
-        Returns None on success, an error string on failure.
-        """
-        pos, ok = self._parse_symbol("START", skeleton, 0)
-        if not ok:
-            return f"Token sequence {skeleton} cannot be derived from START."
-        if pos != len(skeleton):
-            return (
-                f"Parsed only {pos}/{len(skeleton)} tokens. "
-                f"Leftover: {skeleton[pos:]}"
-            )
-        return None
-
-    def _parse_symbol(
-        self, symbol: str, skeleton: list[str], pos: int
-    ) -> tuple[int, bool]:
-        """
-        Attempt to match `symbol` starting at `pos`.
-        Returns (new_pos, success).
-        """
-        # Terminal token — match directly
-        if symbol not in self.rules:
-            if pos < len(skeleton) and skeleton[pos] == symbol:
-                return pos + 1, True
-            return pos, False
-
-        # Non-terminal — try longest productions first to avoid greedy short-circuit
-        # (e.g. VERB_TERM → ["VERB"] would match before ["VERB", "OBJECT", "VERB_TERM"])
-        productions = sorted(self.rules[symbol], key=len, reverse=True)
-        for production in productions:
-            new_pos, ok = self._parse_production(production, skeleton, pos)
-            if ok:
-                return new_pos, True
-
-        return pos, False
-
-    def _parse_production(
-        self, production: list[str], skeleton: list[str], pos: int
-    ) -> tuple[int, bool]:
-        """Try to match a full production (sequence of symbols) left-to-right."""
-        cur = pos
-        for sym in production:
-            cur, ok = self._parse_symbol(sym, skeleton, cur)
-            if not ok:
-                return pos, False   # backtrack to original pos
-        return cur, True
-
-    # ------------------------------------------------------------------ #
-    #  Step 3 – Semantic validation                                        #
-    # ------------------------------------------------------------------ #
 
     def _validate_semantics(
         self, tokens: list[str], skeleton: list[str]
@@ -306,35 +240,6 @@ class CFGValidator:
     #  Constraint helpers (mirror CFG._noun_satisfies_constraint)         #
     # ------------------------------------------------------------------ #
 
-    def _noun_satisfies_constraint(
-        self,
-        noun: NounEntry,
-        constraint,
-        adjectives: list[AdjectiveEntry] = None,
-    ) -> bool:
-        """Exact mirror of CFG._noun_satisfies_constraint."""
-        if not any(t in noun.tag.tag for t in constraint.tag.tag):
-            return False
-
-        agency       = noun.axis.agency
-        physicality  = noun.axis.physicality
-        social       = noun.axis.social
-        system       = noun.axis.system
-
-        if adjectives:
-            for adj in adjectives:
-                agency      += adj.axis.agency
-                physicality += adj.axis.physicality
-                social      += adj.axis.social
-                system      += adj.axis.system
-
-        c_min, c_max = constraint.axis_min, constraint.axis_max
-        return (
-            c_min.agency      <= agency      <= c_max.agency      and
-            c_min.physicality <= physicality <= c_max.physicality and
-            c_min.social      <= social      <= c_max.social      and
-            c_min.system      <= system      <= c_max.system
-        )
 
     def _check_noun_constraint(
         self,
@@ -386,28 +291,10 @@ class CFGValidator:
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def from_cfg(cls, cfg) -> "CFGValidator":
-        """Build a validator from an existing CFG instance."""
-        return cls(
-            rules=cfg.rules,
-            nouns=cfg.nouns,
-            verbs=cfg.verbs,
-            adjectives=cfg.adjectives,
-        )
+    def from_cfg(cls, cfg: "CFG") -> "CFGValidator":
+        return cls(rules=cfg.rules, nouns=cfg.nouns, verbs=cfg.verbs, adjectives=cfg.adjectives)
 
     @classmethod
-    def from_json(
-        cls,
-        file_path: str,
-        nouns=None,
-        verbs=None,
-        adjectives=None,
-    ) -> "CFGValidator":
-        """Build a validator directly from the same JSON file CFG uses."""
-        data = JsonReader.read(file_path)
-        return cls(
-            rules=data.get("rules", {}),
-            nouns=nouns or [],
-            verbs=verbs or [],
-            adjectives=adjectives or [],
-        )
+    def from_json(cls, file_path: str, nouns=None, verbs=None, adjectives=None) -> "CFGValidator":
+        data = cls._load_from_json(file_path)
+        return cls(rules=data.get("rules", {}), nouns=nouns or [], verbs=verbs or [], adjectives=adjectives or [])
