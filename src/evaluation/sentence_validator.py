@@ -126,8 +126,10 @@ class CFGValidator:
                 return pos + 1, True
             return pos, False
 
-        # Non-terminal — try each production in order
-        for production in self.rules[symbol]:
+        # Non-terminal — try longest productions first to avoid greedy short-circuit
+        # (e.g. VERB_TERM → ["VERB"] would match before ["VERB", "OBJECT", "VERB_TERM"])
+        productions = sorted(self.rules[symbol], key=len, reverse=True)
+        for production in productions:
             new_pos, ok = self._parse_production(production, skeleton, pos)
             if ok:
                 return new_pos, True
