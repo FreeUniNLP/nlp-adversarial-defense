@@ -1,0 +1,87 @@
+{
+  "SPECIAL": {
+    "START": "<START>",
+    "END": "<END>"
+  },
+
+  "NOUN": {
+    "ALIVE": {
+      "HUMAN": ["MAN", "WOMAN", "CHILD"],
+      "ANIMAL": ["DOG", "CAT", "BIRD", "FISH", "HORSE"]
+    },
+
+    "OBJECT": {
+      "FIRM": ["METAL", "STONE", "WOOD"],
+      "LIQUID": ["WATER", "FIRE", "OIL"],
+      "GAS": ["AIR", "SMOKE"]
+    },
+
+    "DEVICE": {
+      "TRANSPORT": ["CAR", "DRONE"],
+      "TOOL": ["TOOL", "ENGINE"],
+      "ELECTRONIC": ["PHONE", "COMPUTER"]
+    },
+
+    "PLACE": {
+      "URBAN": ["CIcat1_illegal_transitionsTY", "HOME", "ROOM", "ROAD"],
+      "NATURAL": ["FOREST", "RIVER", "FIELD"],
+      "STRUCTURE": ["BRIDGE", "TUNNEL"]
+    },
+
+    "ABSTRACT": {
+      "CONCEPT": ["RULE", "SYSTEM", "PATTERN"],
+      "STATE": ["STATE", "ORDER"],
+      "SIGNAL": ["ERROR", "SIGNAL", "MEMORY"]
+    }
+  },
+
+  "VERB": {
+    "PHYSICAL_ACTION": {
+      "LOCOMOTION": ["RUN", "JUMP"],
+      "CONSUMPTION": ["EAT", "DRINK"],
+      "MANIPULATION": ["USE", "MOVE", "LIFT"]
+    },
+
+    "MENTAL_ACTION": {
+      "PERCEPTION": ["SEE", "HEAR"],
+      "COGNITION": ["THINK", "KNOW", "LEARN"],
+      "EMOTION": ["LOVE", "HATE"]
+    },
+
+    "SOCIAL_ACTION": {
+      "HELPING": ["HELP", "GIVE"],
+      "COMMUNICATION": ["TALK", "ASK", "WARN"],
+      "CONTROL": ["FOLLOW"]
+    },
+
+    "SYSTEM_ACTION": {
+      "CREATION": ["GENERATE"],
+      "VALIDATION": ["CHECK", "VALIDATE"],
+      "OPERATION": ["FAIL", "UPDATE", "RESET"]
+    }
+  },
+
+  "ADJECTIVE": {
+    "SIZE": {
+      "LARGER": ["BIG", "LARGE", "LONG", "WIDE"],
+      "SMALLER": ["SMALL", "TINY", "SHORT"]
+    },
+
+    "QUALITY": {
+      "POSITIVE": ["GOOD", "STRONG", "CLEAN", "SHARP"],
+      "NEGATIVE": ["BAD", "WEAK", "DIRTY"]
+    },
+
+    "EMOTION": {
+      "POSITIVE": ["HAPPY", "CALM", "PROUD"],
+      "NEGATIVE": ["SAD", "ANGRY", "FEARFUL", "NERVOUS"]
+    },
+
+    "STATE": {
+      "OCCUPANCY": ["FULL", "EMPTY"],
+      "ACCESSIBILITY": ["OPEN", "CLOSED"],
+      "TEMPERATURE": ["HOT", "COLD"],
+      "CONDITION": ["BROKEN"]
+    }
+  }
+}

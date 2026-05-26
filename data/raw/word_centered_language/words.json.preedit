@@ -1,0 +1,3667 @@
+{
+  "_meta": {
+    "version": "3.0",
+    "axis": {
+      "agency": "0=inert/no will, 1=reactive/passive, 2=instinct-driven, 3=goal-directed, 4=deliberate/rational, 5=fully autonomous/creative",
+      "physicality": "0=purely abstract, 1=conceptual-with-form, 2=virtual/structural, 3=manufactured/artifact, 4=tangible-organic, 5=dense/massive/elemental",
+      "social": "0=asocial/isolated, 1=socially aware, 2=relational, 3=group-oriented, 4=community-defining, 5=civilization-level",
+      "system": "0=no structure, 1=simple pattern, 2=rule-following, 3=process-governed, 4=computational/formal, 5=self-regulating/complex"
+    },
+    "argument_constraints": {
+      "agency_min": "subject/object must have agency >= this",
+      "agency_max": "subject/object must have agency <= this",
+      "physicality_min": "subject/object must have physicality >= this",
+      "physicality_max": "subject/object must have physicality <= this",
+      "social_min": "subject/object must have social >= this",
+      "social_max": "subject/object must have social <= this",
+      "system_min": "subject/object must have system >= this",
+      "system_max": "subject/object must have system <= this",
+      "tags_any": "noun must have at least one of these tags"
+    },
+    "adjective_fields": {
+      "modifies": "how this adjective shifts noun axis (applied before verb validation)",
+      "constraints": "noun must satisfy these before adjective can apply"
+    },
+    "balance_notes": {
+      "nouns": "Spread across HUMAN, ANIMAL, OBJECT, DEVICE, PLACE, ABSTRACT categories. Abstract/system nouns expanded.",
+      "verbs": "Spread across PHYSICAL_ACTION, MENTAL_ACTION, SOCIAL_ACTION, SYSTEM_ACTION. System and mental expanded.",
+      "adjectives": "Constraints distributed across all four axis, not just physicality. New agency/social/system adjective families added."
+    }
+  },
+  "NOUNS": {
+    "MAN": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 4,
+        "social": 3,
+        "system": 0
+      },
+      "description": "Adult human male; fully deliberate, embodied, socially embedded"
+    },
+    "WOMAN": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 4,
+        "social": 3,
+        "system": 0
+      },
+      "description": "Adult human female; fully deliberate, embodied, socially embedded"
+    },
+    "CHILD": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 4,
+        "social": 2,
+        "system": 0
+      },
+      "description": "Young human; instinct- and emotion-driven, limited deliberate control"
+    },
+    "ELDER": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 3,
+        "social": 4,
+        "system": 1
+      },
+      "description": "Old human; high social standing, deep relational knowledge, reduced physicality"
+    },
+    "SOLDIER": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 3,
+        "physicality": 4,
+        "social": 2,
+        "system": 2
+      },
+      "description": "Armed combatant; goal-directed, trained, operating within a command system"
+    },
+    "GUARD": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 3,
+        "physicality": 4,
+        "social": 2,
+        "system": 2
+      },
+      "description": "Protective sentinel; deliberate, physically present, rule-governed role"
+    },
+    "LEADER": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 5,
+        "physicality": 4,
+        "social": 5,
+        "system": 2
+      },
+      "description": "One who directs others; maximum agency and social influence"
+    },
+    "STRANGER": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 4,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Unknown person; fully human but socially disconnected from context"
+    },
+    "CROWD": {
+      "tags": [
+        "ALIVE",
+        "HUMAN"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 4,
+        "social": 4,
+        "system": 1
+      },
+      "description": "Mass of people; collective low-deliberation behavior, high social density"
+    },
+    "DOG": {
+      "tags": [
+        "ALIVE",
+        "ANIMAL"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 4,
+        "social": 3,
+        "system": 0
+      },
+      "description": "Domesticated canine; instinct-driven but highly social and bonded"
+    },
+    "CAT": {
+      "tags": [
+        "ALIVE",
+        "ANIMAL"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 4,
+        "social": 1,
+        "system": 0
+      },
+      "description": "Domestic feline; instinct-driven, largely solitary, minimally relational"
+    },
+    "HORSE": {
+      "tags": [
+        "ALIVE",
+        "ANIMAL"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 5,
+        "social": 2,
+        "system": 0
+      },
+      "description": "Large herd animal; powerful, instinct-driven, group-aware"
+    },
+    "BIRD": {
+      "tags": [
+        "ALIVE",
+        "ANIMAL"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 3,
+        "social": 2,
+        "system": 0
+      },
+      "description": "Winged vertebrate; instinct-driven, often flocking/social"
+    },
+    "WOLF": {
+      "tags": [
+        "ALIVE",
+        "ANIMAL"
+      ],
+      "axis": {
+        "agency": 3,
+        "physicality": 4,
+        "social": 3,
+        "system": 1
+      },
+      "description": "Pack predator; goal-directed hunting, strong pack hierarchy"
+    },
+    "INSECT": {
+      "tags": [
+        "ALIVE",
+        "ANIMAL"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 2,
+        "social": 1,
+        "system": 1
+      },
+      "description": "Small invertebrate; mostly reactive, sometimes hive-structured"
+    },
+    "STONE": {
+      "tags": [
+        "OBJECT",
+        "SOLID"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 5,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Dense inorganic solid; completely inert, maximally physical"
+    },
+    "METAL": {
+      "tags": [
+        "OBJECT",
+        "SOLID"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 5,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Refined hard material; inert, elemental, dense"
+    },
+    "WOOD": {
+      "tags": [
+        "OBJECT",
+        "SOLID"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 4,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Organic fibrous material; inert but biologically derived"
+    },
+    "WATER": {
+      "tags": [
+        "OBJECT",
+        "LIQUID"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 4,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Fluid substance; shapeless agency, high physical presence"
+    },
+    "FIRE": {
+      "tags": [
+        "OBJECT",
+        "ENERGY"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 0,
+        "system": 1
+      },
+      "description": "Combustion process; reactive to conditions, self-propagating pattern"
+    },
+    "SEED": {
+      "tags": [
+        "OBJECT",
+        "ORGANIC"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 0,
+        "system": 1
+      },
+      "description": "Dormant plant embryo; latent agency, encodes biological pattern"
+    },
+    "POISON": {
+      "tags": [
+        "OBJECT",
+        "LIQUID"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 1,
+        "system": 2
+      },
+      "description": "Toxic substance; inert but systemically disruptive, socially dangerous"
+    },
+    "DUST": {
+      "tags": [
+        "OBJECT",
+        "GAS"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 2,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Fine dispersed particles; minimal form, passive"
+    },
+    "FOOD": {
+      "tags": [
+        "OBJECT",
+        "ORGANIC"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 4,
+        "social": 2,
+        "system": 0
+      },
+      "description": "Edible matter; inert but socially charged (sustenance, sharing, ritual)"
+    },
+    "TOOL": {
+      "tags": [
+        "OBJECT",
+        "DEVICE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 0,
+        "system": 1
+      },
+      "description": "Shaped object for a purpose; extends human agency, no agency of its own"
+    },
+    "WEAPON": {
+      "tags": [
+        "OBJECT",
+        "DEVICE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 1,
+        "system": 1
+      },
+      "description": "Tool designed for harm; socially loaded, no agency itself"
+    },
+    "KEY": {
+      "tags": [
+        "OBJECT",
+        "DEVICE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 2,
+        "system": 2
+      },
+      "description": "Unlocking artifact; embodies access rights and social permission"
+    },
+    "BOOK": {
+      "tags": [
+        "OBJECT",
+        "ARTIFACT"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 3,
+        "system": 2
+      },
+      "description": "Written record; physical but encodes knowledge, socially transmits ideas"
+    },
+    "MAP": {
+      "tags": [
+        "OBJECT",
+        "ARTIFACT"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 2,
+        "system": 3
+      },
+      "description": "Spatial model of territory; encodes structured spatial knowledge"
+    },
+    "CAR": {
+      "tags": [
+        "DEVICE",
+        "TRANSPORT"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 1,
+        "system": 2
+      },
+      "description": "Motorized vehicle; reactive, mechanical, enables mobility"
+    },
+    "DRONE": {
+      "tags": [
+        "DEVICE",
+        "TRANSPORT"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 3,
+        "social": 0,
+        "system": 4
+      },
+      "description": "Autonomous flying device; semi-autonomous, computationally governed"
+    },
+    "ROBOT": {
+      "tags": [
+        "DEVICE",
+        "MACHINE"
+      ],
+      "axis": {
+        "agency": 3,
+        "physicality": 3,
+        "social": 1,
+        "system": 5
+      },
+      "description": "Programmable physical agent; goal-directed, fully computational"
+    },
+    "ENGINE": {
+      "tags": [
+        "DEVICE",
+        "MACHINE"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 4,
+        "social": 0,
+        "system": 3
+      },
+      "description": "Power conversion system; reactive, process-governed, high physical output"
+    },
+    "PHONE": {
+      "tags": [
+        "DEVICE",
+        "ELECTRONIC"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 4,
+        "system": 4
+      },
+      "description": "Communication device; mediates social interaction, computationally complex"
+    },
+    "COMPUTER": {
+      "tags": [
+        "DEVICE",
+        "ELECTRONIC"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 3,
+        "social": 2,
+        "system": 5
+      },
+      "description": "General computation machine; formally governed, processes abstract structures"
+    },
+    "SENSOR": {
+      "tags": [
+        "DEVICE",
+        "ELECTRONIC"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 0,
+        "system": 4
+      },
+      "description": "Measurement device; purely reactive, converts physical state to signal"
+    },
+    "CAMERA": {
+      "tags": [
+        "DEVICE",
+        "ELECTRONIC"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 2,
+        "system": 3
+      },
+      "description": "Image-capture device; passive observer, socially significant (surveillance/memory)"
+    },
+    "CLOCK": {
+      "tags": [
+        "DEVICE",
+        "MACHINE"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 1,
+        "system": 3
+      },
+      "description": "Timekeeping mechanism; process-governed, socially coordinates behavior"
+    },
+    "NETWORK": {
+      "tags": [
+        "DEVICE",
+        "SYSTEM"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 2,
+        "social": 4,
+        "system": 5
+      },
+      "description": "Connected infrastructure; structural, highly social, self-regulating complexity"
+    },
+    "CITY": {
+      "tags": [
+        "PLACE",
+        "URBAN"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 2,
+        "social": 5,
+        "system": 3
+      },
+      "description": "Large human settlement; peak social density, rule-governed spatial system"
+    },
+    "HOME": {
+      "tags": [
+        "PLACE",
+        "URBAN"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 2,
+        "social": 4,
+        "system": 1
+      },
+      "description": "Dwelling space; deeply relational, emotionally and socially core"
+    },
+    "ROOM": {
+      "tags": [
+        "PLACE",
+        "URBAN"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 2,
+        "social": 2,
+        "system": 0
+      },
+      "description": "Enclosed space; social context-dependent, minimal structure"
+    },
+    "ROAD": {
+      "tags": [
+        "PLACE",
+        "URBAN"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 2,
+        "social": 2,
+        "system": 1
+      },
+      "description": "Pathway infrastructure; enables movement, rule-governed (traffic)"
+    },
+    "MARKET": {
+      "tags": [
+        "PLACE",
+        "URBAN"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 2,
+        "social": 5,
+        "system": 3
+      },
+      "description": "Trade space; defined by exchange relationships, rule-governed pricing/norms"
+    },
+    "PRISON": {
+      "tags": [
+        "PLACE",
+        "URBAN"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 2,
+        "social": 3,
+        "system": 5
+      },
+      "description": "Confinement institution; maximally rule-governed, social control mechanism"
+    },
+    "FOREST": {
+      "tags": [
+        "PLACE",
+        "NATURAL"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 2,
+        "social": 0,
+        "system": 1
+      },
+      "description": "Dense woodland; no human system, minimal social, organic structure"
+    },
+    "RIVER": {
+      "tags": [
+        "PLACE",
+        "NATURAL"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 1,
+        "system": 0
+      },
+      "description": "Flowing waterway; high physical presence, shapes human settlement patterns"
+    },
+    "MOUNTAIN": {
+      "tags": [
+        "PLACE",
+        "NATURAL"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 5,
+        "social": 1,
+        "system": 0
+      },
+      "description": "Massive landform; maximum physicality, culturally/socially significant"
+    },
+    "BORDER": {
+      "tags": [
+        "PLACE",
+        "ABSTRACT"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 1,
+        "social": 4,
+        "system": 3
+      },
+      "description": "Boundary between territories; mostly conceptual, huge social/political weight"
+    },
+    "BRIDGE": {
+      "tags": [
+        "PLACE",
+        "STRUCTURE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 3,
+        "system": 1
+      },
+      "description": "Crossing structure; physical but socially connecting"
+    },
+    "RULE": {
+      "tags": [
+        "ABSTRACT",
+        "NORM"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 3,
+        "system": 3
+      },
+      "description": "Normative constraint; no physical form, governs social behavior through system"
+    },
+    "LAW": {
+      "tags": [
+        "ABSTRACT",
+        "NORM"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 5,
+        "system": 4
+      },
+      "description": "Formal social rule with enforcement; civilization-level social, formally codified"
+    },
+    "SYSTEM": {
+      "tags": [
+        "ABSTRACT",
+        "CONCEPT"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 2,
+        "system": 5
+      },
+      "description": "Set of interacting parts; purely structural, maximally systemic"
+    },
+    "PATTERN": {
+      "tags": [
+        "ABSTRACT",
+        "CONCEPT"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 0,
+        "system": 3
+      },
+      "description": "Repeating structure; no agency or social dimension, purely formal"
+    },
+    "PLAN": {
+      "tags": [
+        "ABSTRACT",
+        "CONCEPT"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 0,
+        "social": 2,
+        "system": 3
+      },
+      "description": "Intended sequence of actions; encodes agency but is not itself an agent"
+    },
+    "TRUTH": {
+      "tags": [
+        "ABSTRACT",
+        "VALUE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 4,
+        "system": 2
+      },
+      "description": "Correspondence to reality; socially fundamental, weakly systemic (logic)"
+    },
+    "LIE": {
+      "tags": [
+        "ABSTRACT",
+        "VALUE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 3,
+        "system": 1
+      },
+      "description": "False assertion; purely social artifact, low systemic structure"
+    },
+    "POWER": {
+      "tags": [
+        "ABSTRACT",
+        "FORCE"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 1,
+        "social": 5,
+        "system": 2
+      },
+      "description": "Capacity to cause change; latent agency, fundamentally social"
+    },
+    "FEAR": {
+      "tags": [
+        "ABSTRACT",
+        "STATE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 2,
+        "system": 1
+      },
+      "description": "Emotional state of threat-response; experienced mentally, socially communicated"
+    },
+    "MEMORY": {
+      "tags": [
+        "ABSTRACT",
+        "SIGNAL"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 2,
+        "system": 3
+      },
+      "description": "Stored past experience; no form, process-governed retrieval"
+    },
+    "SIGNAL": {
+      "tags": [
+        "ABSTRACT",
+        "SIGNAL"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 2,
+        "system": 4
+      },
+      "description": "Information-carrying difference; formally structured, socially interpreted"
+    },
+    "ERROR": {
+      "tags": [
+        "ABSTRACT",
+        "SIGNAL"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 0,
+        "system": 5
+      },
+      "description": "Deviation from expected state; purely systemic, no social or physical form"
+    },
+    "CHOICE": {
+      "tags": [
+        "ABSTRACT",
+        "CONCEPT"
+      ],
+      "axis": {
+        "agency": 3,
+        "physicality": 0,
+        "social": 3,
+        "system": 2
+      },
+      "description": "Selection between alternatives; inherently agentive, socially consequential"
+    },
+    "DEBT": {
+      "tags": [
+        "ABSTRACT",
+        "NORM"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 4,
+        "system": 3
+      },
+      "description": "Obligation between agents; socially binding, formally tracked"
+    },
+    "IDENTITY": {
+      "tags": [
+        "ABSTRACT",
+        "CONCEPT"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 0,
+        "social": 5,
+        "system": 2
+      },
+      "description": "Sense of self; agentive in expression, defined through social recognition"
+    },
+    "ALGORITHM": {
+      "tags": [
+        "ABSTRACT",
+        "SYSTEM"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 0,
+        "system": 5
+      },
+      "description": "Formal procedure; maximally systemic, asocial, no physical form"
+    },
+    "LANGUAGE": {
+      "tags": [
+        "ABSTRACT",
+        "SYSTEM"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 5,
+        "system": 4
+      },
+      "description": "Symbolic communication system; civilization-level social, formally structured"
+    },
+    "TIME": {
+      "tags": [
+        "ABSTRACT",
+        "FORCE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 2,
+        "system": 2
+      },
+      "description": "Dimension of change; not physical, not social, but structures both"
+    },
+    "CHANCE": {
+      "tags": [
+        "ABSTRACT",
+        "FORCE"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 1,
+        "system": 1
+      },
+      "description": "Unpredictable outcome; minimal structure, undermines deterministic systems"
+    }
+  },
+  "VERBS": {
+    "RUN": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "LOCOMOTION"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 4,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Move fast under own power; instinct-sufficient, requires full embodiment",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "TRANSPORT"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 4,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        }
+      ]
+    },
+    "FALL": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "LOCOMOTION"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 3,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Move downward under gravity; no agency required, physical mass sufficient",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "OBJECT",
+              "DEVICE",
+              "TRANSPORT"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "EAT": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "CONSUMPTION"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 4,
+        "social": 1,
+        "system": 0
+      },
+      "description": "Ingest solid matter; requires biological embodiment and instinct-level drive",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "TRANSPORT"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 4,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "OBJECT",
+              "ALIVE",
+              "TRANSPORT"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 1,
+              "physicality": 5,
+              "social": 2,
+              "system": 0
+            }
+          }
+        }
+      ]
+    },
+    "BUILD": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "CREATION"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 4,
+        "social": 2,
+        "system": 2
+      },
+      "description": "Assemble into something new; requires deliberate intent and physical embodiment",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "HUMAN",
+              "DEVICE",
+              "OBJECT"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "OBJECT",
+              "DEVICE",
+              "PLACE",
+              "ARTIFACT"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 2,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 1,
+              "physicality": 5,
+              "social": 4,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "BREAK": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "DESTRUCTION"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 4,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Damage physical integrity; requires force, target must have physical form",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "DEVICE",
+              "OBJECT"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "OBJECT",
+              "DEVICE",
+              "STRUCTURE"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 1,
+              "physicality": 5,
+              "social": 2,
+              "system": 4
+            }
+          }
+        }
+      ]
+    },
+    "MOVE": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "MANIPULATION"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 0,
+        "system": 0
+      },
+      "description": "Displace from one location to another; minimal agency needed, physical form required",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "DEVICE",
+              "OBJECT"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "OBJECT",
+              "DEVICE",
+              "ALIVE",
+              "PLACE"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 2,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 3,
+              "physicality": 5,
+              "social": 3,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "CARRY": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "MANIPULATION"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 4,
+        "social": 1,
+        "system": 0
+      },
+      "description": "Transport while bearing weight; requires physical strength and intent",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "OBJECT"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 4,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "OBJECT",
+              "DEVICE",
+              "ALIVE"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 1,
+              "physicality": 5,
+              "social": 2,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "BURN": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "DESTRUCTION"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 4,
+        "social": 0,
+        "system": 1
+      },
+      "description": "Consume by fire; can happen without agency, requires physical matter",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "OBJECT",
+              "ENERGY",
+              "ALIVE",
+              "ORGANIC"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "GROW": {
+      "tags": [
+        "PHYSICAL_ACTION",
+        "CHANGE"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 0,
+        "system": 2
+      },
+      "description": "Increase in size or complexity over time; biological or systemic process",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "OBJECT",
+              "ABSTRACT",
+              "SYSTEM"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 1
+            },
+            "max_axis": {
+              "agency": 3,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "SEE": {
+      "tags": [
+        "MENTAL_ACTION",
+        "PERCEPTION"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 0,
+        "system": 1
+      },
+      "description": "Detect visually; passive perception requiring physical eyes or sensors",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "DEVICE",
+              "SIGNAL"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "OBJECT",
+              "DEVICE",
+              "PLACE",
+              "SIGNAL"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 2,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "HEAR": {
+      "tags": [
+        "MENTAL_ACTION",
+        "PERCEPTION"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 2,
+        "social": 1,
+        "system": 1
+      },
+      "description": "Detect acoustically; passive perception, can pick up abstract signals",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "DEVICE",
+              "SIGNAL"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 2,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "OBJECT",
+              "DEVICE",
+              "ABSTRACT",
+              "SIGNAL"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "THINK": {
+      "tags": [
+        "MENTAL_ACTION",
+        "COGNITION"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 4,
+        "social": 2,
+        "system": 2
+      },
+      "description": "Form thoughts deliberately; requires highest agency, biological embodiment",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "ABSTRACT"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 4,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "ALIVE",
+              "PLACE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "KNOW": {
+      "tags": [
+        "MENTAL_ACTION",
+        "COGNITION"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 2,
+        "social": 2,
+        "system": 2
+      },
+      "description": "Hold stable belief as knowledge; requires social mind to define truth",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 3,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "ALIVE",
+              "PLACE",
+              "OBJECT",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "CHOOSE": {
+      "tags": [
+        "MENTAL_ACTION",
+        "DECISION"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 0,
+        "social": 2,
+        "system": 1
+      },
+      "description": "Select between alternatives; requires deliberate agency, can affect social outcomes",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "PLACE"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "ALIVE",
+              "OBJECT",
+              "PLACE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "IMAGINE": {
+      "tags": [
+        "MENTAL_ACTION",
+        "COGNITION"
+      ],
+      "axis": {
+        "agency": 5,
+        "physicality": 0,
+        "social": 1,
+        "system": 1
+      },
+      "description": "Create mental representation of non-present things; uniquely high-agency, purely mental",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "ORGANIC"
+            ],
+            "min_axis": {
+              "agency": 4,
+              "physicality": 4,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "ALIVE",
+              "PLACE",
+              "OBJECT",
+              "ORGANIC"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "FORGET": {
+      "tags": [
+        "MENTAL_ACTION",
+        "COGNITION"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 3,
+        "social": 1,
+        "system": 2
+      },
+      "description": "Lose access to stored information; partly involuntary, biologically grounded",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 3,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "WANT": {
+      "tags": [
+        "MENTAL_ACTION",
+        "EMOTION"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 2,
+        "social": 1,
+        "system": 0
+      },
+      "description": "Desire something; instinct-level or deliberate, no physical form needed",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 3,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "OBJECT",
+              "DEVICE",
+              "PLACE",
+              "ABSTRACT",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "TRUST": {
+      "tags": [
+        "MENTAL_ACTION",
+        "SOCIAL_COGNITION"
+      ],
+      "axis": {
+        "agency": 3,
+        "physicality": 0,
+        "social": 4,
+        "system": 1
+      },
+      "description": "Rely on another agent despite uncertainty; high-agency social judgment",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "ABSTRACT",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "TALK": {
+      "tags": [
+        "SOCIAL_ACTION",
+        "COMMUNICATION"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 3,
+        "social": 4,
+        "system": 1
+      },
+      "description": "Produce speech to communicate; requires deliberate agency, social context",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "PLACE"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        }
+      ]
+    },
+    "ASK": {
+      "tags": [
+        "SOCIAL_ACTION",
+        "COMMUNICATION"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 2,
+        "social": 3,
+        "system": 1
+      },
+      "description": "Request information or action from another; deliberate, directed social act",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "PLACE"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 3,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        }
+      ]
+    },
+    "WARN": {
+      "tags": [
+        "SOCIAL_ACTION",
+        "COMMUNICATION"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 2,
+        "social": 4,
+        "system": 1
+      },
+      "description": "Alert another to danger; deliberate social act with protective intent",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "PLACE"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 3,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        }
+      ]
+    },
+    "HELP": {
+      "tags": [
+        "SOCIAL_ACTION",
+        "COOPERATION"
+      ],
+      "axis": {
+        "agency": 3,
+        "physicality": 2,
+        "social": 4,
+        "system": 0
+      },
+      "description": "Assist another's goals; requires recognition of another's needs",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 2,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 2,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        }
+      ]
+    },
+    "BETRAY": {
+      "tags": [
+        "SOCIAL_ACTION",
+        "CONFLICT"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 0,
+        "social": 4,
+        "system": 0
+      },
+      "description": "Violate trust deliberately; deeply agentive, purely social harm",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "PLACE"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 2,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        }
+      ]
+    },
+    "ATTACK": {
+      "tags": [
+        "SOCIAL_ACTION",
+        "CONFLICT"
+      ],
+      "axis": {
+        "agency": 3,
+        "physicality": 4,
+        "social": 2,
+        "system": 0
+      },
+      "description": "Initiate violence against; requires physical or social power, directed intent",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 3,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "DEVICE",
+              "PLACE",
+              "HUMAN"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 2,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "FOLLOW": {
+      "tags": [
+        "SOCIAL_ACTION",
+        "DEFERENCE"
+      ],
+      "axis": {
+        "agency": 2,
+        "physicality": 2,
+        "social": 3,
+        "system": 1
+      },
+      "description": "Move after or obey; social submission or physical tracking",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "TRANSPORT"
+            ],
+            "min_axis": {
+              "agency": 2,
+              "physicality": 2,
+              "social": 1,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "ABSTRACT",
+              "TRANSPORT"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "TRADE": {
+      "tags": [
+        "SOCIAL_ACTION",
+        "EXCHANGE"
+      ],
+      "axis": {
+        "agency": 4,
+        "physicality": 2,
+        "social": 5,
+        "system": 3
+      },
+      "description": "Exchange goods or favors; requires mutual recognition, social norms, systemic context",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "ABSTRACT"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ALIVE",
+              "HUMAN",
+              "ABSTRACT"
+            ],
+            "min_axis": {
+              "agency": 3,
+              "physicality": 3,
+              "social": 2,
+              "system": 0
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 5,
+              "system": 1
+            }
+          }
+        }
+      ]
+    },
+    "GENERATE": {
+      "tags": [
+        "SYSTEM_ACTION",
+        "CREATION"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 0,
+        "social": 0,
+        "system": 5
+      },
+      "description": "Produce output from formal process; systemic, not requiring physical form",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "DEVICE",
+              "ALIVE",
+              "OBJECT"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 0,
+              "social": 0,
+              "system": 3
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 2,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "SIGNAL",
+              "OBJECT"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 1
+            },
+            "max_axis": {
+              "agency": 0,
+              "physicality": 1,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "COMPUTE": {
+      "tags": [
+        "SYSTEM_ACTION",
+        "PROCESSING"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 0,
+        "social": 0,
+        "system": 5
+      },
+      "description": "Execute formal operations on symbols; purely systemic, asocial",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "DEVICE",
+              "ALIVE",
+              "ABSTRACT"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 0,
+              "social": 0,
+              "system": 4
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 1,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "SYSTEM"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 2
+            },
+            "max_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 2,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "FAIL": {
+      "tags": [
+        "SYSTEM_ACTION",
+        "BREAKDOWN"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 0,
+        "social": 0,
+        "system": 5
+      },
+      "description": "Cease to function as expected; purely systemic event, no agency involved",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "DEVICE",
+              "ABSTRACT",
+              "SYSTEM"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 2
+            },
+            "max_axis": {
+              "agency": 2,
+              "physicality": 3,
+              "social": 2,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "UPDATE": {
+      "tags": [
+        "SYSTEM_ACTION",
+        "OPERATION"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 0,
+        "social": 1,
+        "system": 4
+      },
+      "description": "Replace old state with new; computational or rule-governed process",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "DEVICE",
+              "ALIVE",
+              "ABSTRACT"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 0,
+              "social": 0,
+              "system": 3
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 2,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "DEVICE",
+              "SYSTEM"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 2
+            },
+            "max_axis": {
+              "agency": 1,
+              "physicality": 3,
+              "social": 2,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "ENCODE": {
+      "tags": [
+        "SYSTEM_ACTION",
+        "TRANSFORMATION"
+      ],
+      "axis": {
+        "agency": 1,
+        "physicality": 0,
+        "social": 0,
+        "system": 5
+      },
+      "description": "Convert information into a formal representation; purely systemic transformation",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "DEVICE",
+              "ALIVE",
+              "ABSTRACT"
+            ],
+            "min_axis": {
+              "agency": 1,
+              "physicality": 0,
+              "social": 0,
+              "system": 3
+            },
+            "max_axis": {
+              "agency": 5,
+              "physicality": 5,
+              "social": 1,
+              "system": 5
+            }
+          }
+        },
+        {
+          "role": "object1",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "SIGNAL",
+              "SYSTEM"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 1
+            },
+            "max_axis": {
+              "agency": 1,
+              "physicality": 2,
+              "social": 4,
+              "system": 5
+            }
+          }
+        }
+      ]
+    },
+    "SPREAD": {
+      "tags": [
+        "SYSTEM_ACTION",
+        "PROPAGATION"
+      ],
+      "axis": {
+        "agency": 0,
+        "physicality": 1,
+        "social": 3,
+        "system": 3
+      },
+      "description": "Propagate across a network or population; social or systemic diffusion",
+      "arguments": [
+        {
+          "role": "subject",
+          "constraints": {
+            "tags_any": [
+              "ABSTRACT",
+              "OBJECT",
+              "ALIVE",
+              "SYSTEM"
+            ],
+            "min_axis": {
+              "agency": 0,
+              "physicality": 0,
+              "social": 0,
+              "system": 1
+            },
+            "max_axis": {
+              "agency": 3,
+              "physicality": 4,
+              "social": 5,
+              "system": 5
+            }
+          }
+        }
+      ]
+    }
+  },
+  "ADJECTIVES": {
+    "BIG": {
+      "tags": [
+        "SIZE",
+        "LARGER"
+      ],
+      "modifies": {
+        "physicality": 1
+      },
+      "description": "Greater than normal in size; applies to physical things only",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "OBJECT",
+          "DEVICE",
+          "PLACE",
+          "ORGANIC"
+        ],
+        "min_axis": {
+          "physicality": 2
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "SMALL": {
+      "tags": [
+        "SIZE",
+        "SMALLER"
+      ],
+      "modifies": {
+        "physicality": -1
+      },
+      "description": "Less than normal in size; applies to physical things only",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "OBJECT",
+          "DEVICE",
+          "ORGANIC"
+        ],
+        "min_axis": {
+          "physicality": 3
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "HEAVY": {
+      "tags": [
+        "SIZE",
+        "MASS"
+      ],
+      "modifies": {
+        "physicality": 2
+      },
+      "description": "High mass relative to expectations; strongly physical modifier",
+      "constraints": {
+        "tags_any": [
+          "OBJECT",
+          "DEVICE",
+          "ALIVE",
+          "ORGANIC"
+        ],
+        "min_axis": {
+          "physicality": 3
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "DENSE": {
+      "tags": [
+        "SIZE",
+        "MASS"
+      ],
+      "modifies": {
+        "physicality": 2,
+        "system": -1
+      },
+      "description": "Compact and heavy per volume; resists processing, very physical",
+      "constraints": {
+        "tags_any": [
+          "OBJECT",
+          "ALIVE",
+          "DEVICE"
+        ],
+        "min_axis": {
+          "physicality": 3
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "VAST": {
+      "tags": [
+        "SIZE",
+        "LARGER"
+      ],
+      "modifies": {
+        "physicality": 2,
+        "social": 1
+      },
+      "description": "Enormous in scale; applies to places and systems, carries social weight",
+      "constraints": {
+        "tags_any": [
+          "PLACE",
+          "ABSTRACT",
+          "SYSTEM",
+          "OBJECT"
+        ],
+        "min_axis": {
+          "physicality": 0
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "STRONG": {
+      "tags": [
+        "QUALITY",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "agency": 1,
+        "physicality": 1
+      },
+      "description": "High physical or agentive force; applies to embodied things",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "OBJECT",
+          "DEVICE",
+          "ORGANIC"
+        ],
+        "min_axis": {
+          "physicality": 3
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "WEAK": {
+      "tags": [
+        "QUALITY",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "agency": -1,
+        "physicality": -1
+      },
+      "description": "Low force or capacity; reduces both agency and physicality",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "OBJECT",
+          "DEVICE",
+          "ORGANIC"
+        ],
+        "min_axis": {
+          "physicality": 3
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "FAST": {
+      "tags": [
+        "QUALITY",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "agency": 1,
+        "system": 1
+      },
+      "description": "High rate of action or processing; boosts agency and systemic throughput",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "DEVICE",
+          "ABSTRACT",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 1
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "SLOW": {
+      "tags": [
+        "QUALITY",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "agency": -1,
+        "system": -1
+      },
+      "description": "Low rate of action; inhibits agency and systemic speed",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "DEVICE",
+          "ABSTRACT",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 1
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "SHARP": {
+      "tags": [
+        "QUALITY",
+        "PRECISION"
+      ],
+      "modifies": {
+        "physicality": 1,
+        "system": 1
+      },
+      "description": "Precise edge or mind; physical sharpness or cognitive precision",
+      "constraints": {
+        "tags_any": [
+          "OBJECT",
+          "DEVICE",
+          "ALIVE",
+          "ORGANIC"
+        ],
+        "min_axis": {
+          "physicality": 2
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "DULL": {
+      "tags": [
+        "QUALITY",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "physicality": -1,
+        "system": -1
+      },
+      "description": "Blunt or cognitively slow; reduces physical precision and systemic clarity",
+      "constraints": {
+        "tags_any": [
+          "OBJECT",
+          "DEVICE",
+          "ALIVE",
+          "ORGANIC"
+        ],
+        "min_axis": {
+          "physicality": 2
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "CLEAN": {
+      "tags": [
+        "QUALITY",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "social": 1,
+        "system": 1
+      },
+      "description": "Free of contamination; socially acceptable, well-ordered",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "OBJECT",
+          "PLACE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "physicality": 2
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "DIRTY": {
+      "tags": [
+        "QUALITY",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "social": -1,
+        "system": -1
+      },
+      "description": "Contaminated or disordered; socially rejected, reduces systemic integrity",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "OBJECT",
+          "PLACE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "physicality": 2
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "HAPPY": {
+      "tags": [
+        "EMOTION",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "social": 2,
+        "agency": 1
+      },
+      "description": "Experiencing positive affect; boosts social engagement and motivation",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 2
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "SAD": {
+      "tags": [
+        "EMOTION",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "social": -1,
+        "agency": -1
+      },
+      "description": "Experiencing negative affect; reduces social drive and motivation",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 2
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "ANGRY": {
+      "tags": [
+        "EMOTION",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "agency": 2,
+        "social": -2
+      },
+      "description": "High-arousal negative emotion; spikes agency but disrupts social bonds",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 2
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "CALM": {
+      "tags": [
+        "EMOTION",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "agency": -1,
+        "social": 2,
+        "system": 1
+      },
+      "description": "Low arousal, stable state; improves social and rational function",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 2
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "PROUD": {
+      "tags": [
+        "EMOTION",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "social": 3,
+        "agency": 1
+      },
+      "description": "Self-regarding positive emotion; requires social comparison, high deliberation",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 4
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "ASHAMED": {
+      "tags": [
+        "EMOTION",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "social": -3,
+        "agency": -1
+      },
+      "description": "Social self-evaluation failure; collapses social standing and agency",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 3
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "FREE": {
+      "tags": [
+        "STATE",
+        "AGENCY"
+      ],
+      "modifies": {
+        "agency": 2,
+        "social": 1
+      },
+      "description": "Unconstrained by external control; maximizes agentive latitude",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "ABSTRACT",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 1
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "TRAPPED": {
+      "tags": [
+        "STATE",
+        "AGENCY"
+      ],
+      "modifies": {
+        "agency": -2,
+        "social": -1
+      },
+      "description": "Unable to act or escape; severely reduces agency and social access",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 1
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "OBEDIENT": {
+      "tags": [
+        "STATE",
+        "AGENCY"
+      ],
+      "modifies": {
+        "agency": -1,
+        "social": 1,
+        "system": 1
+      },
+      "description": "Following commands; trades agency for social acceptance and systemic fit",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 2
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "REBELLIOUS": {
+      "tags": [
+        "STATE",
+        "AGENCY"
+      ],
+      "modifies": {
+        "agency": 2,
+        "social": -2,
+        "system": -2
+      },
+      "description": "Actively defying norms; high agency, rejects social and systemic order",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 3
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "DEAD": {
+      "tags": [
+        "STATE",
+        "CONDITION"
+      ],
+      "modifies": {
+        "agency": -5,
+        "social": -4
+      },
+      "description": "Biologically ceased; annihilates all agency and most social function",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 0
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "BROKEN": {
+      "tags": [
+        "STATE",
+        "CONDITION"
+      ],
+      "modifies": {
+        "agency": -2,
+        "system": -2
+      },
+      "description": "Structurally failed; reduces functional agency and systemic integrity",
+      "constraints": {
+        "tags_any": [
+          "DEVICE",
+          "OBJECT",
+          "ALIVE"
+        ],
+        "min_axis": {
+          "physicality": 3
+        },
+        "max_axis": {
+          "physicality": 5
+        }
+      }
+    },
+    "ACTIVE": {
+      "tags": [
+        "STATE",
+        "CONDITION"
+      ],
+      "modifies": {
+        "agency": 2,
+        "system": 2
+      },
+      "description": "Currently operating; boosts agency and systemic engagement",
+      "constraints": {
+        "tags_any": [
+          "DEVICE",
+          "ALIVE",
+          "ABSTRACT",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 1
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "DORMANT": {
+      "tags": [
+        "STATE",
+        "CONDITION"
+      ],
+      "modifies": {
+        "agency": -2,
+        "system": -1
+      },
+      "description": "Inactive but capable of reactivation; suppressed agency",
+      "constraints": {
+        "tags_any": [
+          "DEVICE",
+          "ALIVE",
+          "ABSTRACT",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "agency": 1
+        },
+        "max_axis": {
+          "agency": 5
+        }
+      }
+    },
+    "ISOLATED": {
+      "tags": [
+        "SOCIAL",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "social": -3
+      },
+      "description": "Cut off from social contact; collapses social dimension",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "PLACE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "social": 1
+        },
+        "max_axis": {
+          "social": 5
+        }
+      }
+    },
+    "CONNECTED": {
+      "tags": [
+        "SOCIAL",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "social": 2,
+        "system": 1
+      },
+      "description": "Linked to others or to network; amplifies social and systemic reach",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "DEVICE",
+          "PLACE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "social": 0
+        },
+        "max_axis": {
+          "social": 4
+        }
+      }
+    },
+    "TRUSTED": {
+      "tags": [
+        "SOCIAL",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "social": 3,
+        "agency": 1
+      },
+      "description": "Judged reliable by others; strong social endorsement",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "ABSTRACT",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "social": 1
+        },
+        "max_axis": {
+          "social": 5
+        }
+      }
+    },
+    "OUTCAST": {
+      "tags": [
+        "SOCIAL",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "social": -4,
+        "agency": -1
+      },
+      "description": "Rejected by community; near-total social exclusion",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "social": 1
+        },
+        "max_axis": {
+          "social": 5
+        }
+      }
+    },
+    "FAMOUS": {
+      "tags": [
+        "SOCIAL",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "social": 4
+      },
+      "description": "Known widely across society; maximum social reach",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "OBJECT",
+          "PLACE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "social": 1
+        },
+        "max_axis": {
+          "social": 5
+        }
+      }
+    },
+    "SECRET": {
+      "tags": [
+        "SOCIAL",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "social": -2,
+        "system": 1
+      },
+      "description": "Hidden from social knowledge; low social visibility, high informational structure",
+      "constraints": {
+        "tags_any": [
+          "ALIVE",
+          "ABSTRACT",
+          "PLACE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "social": 0
+        },
+        "max_axis": {
+          "social": 5
+        }
+      }
+    },
+    "COMPLEX": {
+      "tags": [
+        "SYSTEM",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "system": 2
+      },
+      "description": "High internal structure; applies to systems, rules, and devices",
+      "constraints": {
+        "tags_any": [
+          "ABSTRACT",
+          "DEVICE",
+          "ALIVE",
+          "SYSTEM"
+        ],
+        "min_axis": {
+          "system": 1
+        },
+        "max_axis": {
+          "system": 4
+        }
+      }
+    },
+    "SIMPLE": {
+      "tags": [
+        "SYSTEM",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "system": -2
+      },
+      "description": "Low internal structure; reduces systemic complexity",
+      "constraints": {
+        "tags_any": [
+          "ABSTRACT",
+          "DEVICE",
+          "OBJECT",
+          "SYSTEM"
+        ],
+        "min_axis": {
+          "system": 1
+        },
+        "max_axis": {
+          "system": 5
+        }
+      }
+    },
+    "ORDERED": {
+      "tags": [
+        "SYSTEM",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "system": 2,
+        "social": 1
+      },
+      "description": "Internally organized; increases systemic and social regularity",
+      "constraints": {
+        "tags_any": [
+          "ABSTRACT",
+          "PLACE",
+          "DEVICE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "system": 0
+        },
+        "max_axis": {
+          "system": 4
+        }
+      }
+    },
+    "CHAOTIC": {
+      "tags": [
+        "SYSTEM",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "system": -3,
+        "social": -1
+      },
+      "description": "Lacking order; collapses systemic structure and social predictability",
+      "constraints": {
+        "tags_any": [
+          "ABSTRACT",
+          "PLACE",
+          "ALIVE",
+          "DEVICE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "system": 0
+        },
+        "max_axis": {
+          "system": 5
+        }
+      }
+    },
+    "ENCRYPTED": {
+      "tags": [
+        "SYSTEM",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "system": 2,
+        "social": -1
+      },
+      "description": "Formally protected information; highly structured, socially opaque",
+      "constraints": {
+        "tags_any": [
+          "ABSTRACT",
+          "DEVICE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "system": 2
+        },
+        "max_axis": {
+          "system": 5
+        }
+      }
+    },
+    "CORRUPTED": {
+      "tags": [
+        "SYSTEM",
+        "NEGATIVE"
+      ],
+      "modifies": {
+        "system": -3,
+        "social": -2
+      },
+      "description": "Internal integrity damaged; destroys systemic function and social trust",
+      "constraints": {
+        "tags_any": [
+          "ABSTRACT",
+          "DEVICE",
+          "ALIVE",
+          "HUMAN"
+        ],
+        "min_axis": {
+          "system": 1
+        },
+        "max_axis": {
+          "system": 5
+        }
+      }
+    },
+    "AUTOMATED": {
+      "tags": [
+        "SYSTEM",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "system": 3,
+        "agency": 1
+      },
+      "description": "Self-executing without manual input; elevates systemic autonomy",
+      "constraints": {
+        "tags_any": [
+          "DEVICE",
+          "ABSTRACT",
+          "ALIVE"
+        ],
+        "min_axis": {
+          "system": 2
+        },
+        "max_axis": {
+          "system": 4
+        }
+      }
+    },
+    "OPTIMAL": {
+      "tags": [
+        "SYSTEM",
+        "POSITIVE"
+      ],
+      "modifies": {
+        "system": 2,
+        "agency": 1
+      },
+      "description": "Best possible outcome for given constraints; formal evaluation, systemic goal",
+      "constraints": {
+        "tags_any": [
+          "ABSTRACT",
+          "DEVICE",
+          "ALIVE"
+        ],
+        "min_axis": {
+          "system": 2
+        },
+        "max_axis": {
+          "system": 5
+        }
+      }
+    }
+  }
+}
