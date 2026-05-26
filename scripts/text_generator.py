@@ -44,7 +44,7 @@ def main():
     print(f"Loaded Lexicon Component Counts -> Nouns: {len(nouns)}, Verbs: {len(verbs)}, Adjectives: {len(adjectives)}")
 
     # 2. Instantiate your CFG while injecting the parsed lexicon pools
-    cfg = CFG.from_json_to_dataclass(
+    cfg = CFG.from_json(
         file_path=transition_path,
         nouns=nouns,
         verbs=verbs,

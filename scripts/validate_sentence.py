@@ -6,7 +6,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.language.entities.cfg import CFG
 from src.language.parsers import LexiconParser
-from src.evaluation.sentence_validator import CFGValidator
+from src.language.entities.cfg_validator import CFGValidator
 
 WORDS_PATH = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "words.json"
 TRANSITION_PATH = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "transition.json"
@@ -14,7 +14,7 @@ TRANSITION_PATH = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "tr
 
 def build_validator() -> CFGValidator:
     nouns, verbs, adjectives = LexiconParser.parse(WORDS_PATH)
-    cfg = CFG.from_json_to_dataclass(
+    cfg = CFG.from_json(
         file_path=TRANSITION_PATH,
         nouns=nouns,
         verbs=verbs,
