@@ -11,7 +11,13 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+import json
+import logging
+import csv
+import random
 from pathlib import Path
+
+import numpy as np
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -66,6 +72,13 @@ def train(args: argparse.Namespace) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
+    # reproducibility
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+
     corpus_path = PROJECT_ROOT / "data" / "raw" / "generated_texts" / f"generated_corpus_{args.corpus}.txt"
     if not corpus_path.exists():
         raise FileNotFoundError(f"Corpus not found: {corpus_path}")
@@ -74,9 +87,30 @@ def train(args: argparse.Namespace) -> None:
     tokenizer = WordTokenizer.from_corpus(corpus_path)
     print(f"Vocab size: {tokenizer.vocab_size}")
 
+    # prepare output & logging dirs
+    output_dir = PROJECT_ROOT / "data" / "models"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir = PROJECT_ROOT / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    # Configure logging to file + stdout
+    log_file = logs_dir / f"train_corpus{args.corpus}.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[logging.FileHandler(log_file), logging.StreamHandler(sys.stdout)],
+    )
+    logging.info(f"Training (corpus={args.corpus}) — logs -> {log_file}")
+
+    # Save tokenizer vocab for reproducible evaluation
+    tokenizer_path = output_dir / f"tokenizer_corpus{args.corpus}.json"
+    with tokenizer_path.open("w", encoding="utf-8") as f:
+        json.dump({"vocab": list(tokenizer.token_to_id.keys())}, f, ensure_ascii=False, indent=2)
+    logging.info(f"Saved tokenizer vocab -> {tokenizer_path}")
+
     dataset = SentenceDataset(corpus_path, tokenizer, context_len=args.context_len)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=False)
-    print(f"Dataset: {len(dataset)} sentences  |  Batches/epoch: {len(loader)}")
+    logging.info(f"Dataset: {len(dataset)} sentences  |  Batches/epoch: {len(loader)}")
 
     model = MiniGPT(
         vocab_size=tokenizer.vocab_size,
@@ -90,14 +124,19 @@ def train(args: argparse.Namespace) -> None:
     ).to(device)
 
     param_count = sum(p.numel() for p in model.parameters())
-    print(f"Model parameters: {param_count:,}")
+    logging.info(f"Model parameters: {param_count:,}")
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
     criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id)
 
-    output_dir = PROJECT_ROOT / "data" / "models"
-    output_dir.mkdir(parents=True, exist_ok=True)
     best_loss = float("inf")
+    ckpt_path = output_dir / f"minigpt_corpus{args.corpus}.pt"
+
+    # Prepare CSV metrics file
+    metrics_path = logs_dir / f"metrics_corpus{args.corpus}.csv"
+    metrics_f = metrics_path.open("w", newline="", encoding="utf-8")
+    metrics_writer = csv.writer(metrics_f)
+    metrics_writer.writerow(["epoch", "avg_loss", "time_s"])
 
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -117,17 +156,33 @@ def train(args: argparse.Namespace) -> None:
 
         avg_loss = total_loss / len(loader)
         elapsed = time.time() - t0
-        print(f"Epoch {epoch:3d}/{args.epochs}  loss={avg_loss:.4f}  time={elapsed:.1f}s")
+        logging.info(f"Epoch {epoch:3d}/{args.epochs}  loss={avg_loss:.4f}  time={elapsed:.1f}s")
+        metrics_writer.writerow([epoch, f"{avg_loss:.6f}", f"{elapsed:.3f}"])
 
         if avg_loss < best_loss:
             best_loss = avg_loss
             ckpt_path = output_dir / f"minigpt_corpus{args.corpus}.pt"
-            torch.save({"epoch": epoch, "model_state": model.state_dict(), "loss": avg_loss}, ckpt_path)
+            torch.save({
+                "epoch": epoch,
+                "model_state": model.state_dict(),
+                "optimizer_state": optimizer.state_dict(),
+                "loss": avg_loss,
+                "args": vars(args),
+            }, ckpt_path)
+            logging.info(f"Saved checkpoint -> {ckpt_path}")
 
-    print(f"\nBest loss: {best_loss:.4f}  checkpoint -> {ckpt_path.relative_to(PROJECT_ROOT)}")
+    logging.info(f"\nBest loss: {best_loss:.4f}  checkpoint -> {ckpt_path.relative_to(PROJECT_ROOT)}")
+
+    # close metrics file
+    metrics_f.close()
+
+    # Save embeddings for analysis
+    embeddings_path = output_dir / f"embeddings_corpus{args.corpus}.npy"
+    np.save(embeddings_path, model.token_emb.weight.detach().cpu().numpy())
+    logging.info(f"Saved embeddings -> {embeddings_path}")
 
     # ---- sample a few generated sentences ----
-    print("\n--- Sample generated sentences ---")
+    logging.info("\n--- Sample generated sentences ---")
     model.eval()
     for _ in range(5):
         ids = model.generate(
@@ -137,7 +192,7 @@ def train(args: argparse.Namespace) -> None:
             temperature=args.temperature,
             device=str(device),
         )
-        print(" ", tokenizer.decode(ids))
+        logging.info(" %s", tokenizer.decode(ids))
 
 
 # ------------------------------------------------------------------ #
@@ -158,6 +213,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--context-len", type=int, default=32, dest="context_len")
     p.add_argument("--temperature", type=float, default=0.8,
                    help="Sampling temperature for generated examples")
+    p.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     return p.parse_args()
 
 
