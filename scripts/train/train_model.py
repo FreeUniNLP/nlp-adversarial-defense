@@ -1,10 +1,10 @@
 """Train a small GPT-style decoder on the generated mini-language corpus.
 
 Usage:
-    python scripts/train_model.py                                    # local training only
-    python scripts/train_model.py --corpus 5000 --epochs 20          # custom hyperparams
-    python scripts/train_model.py --mlflow --corpus 10000            # with MLflow tracking
-    DAGSHUB_REPO_OWNER=user DAGSHUB_REPO_NAME=repo python scripts/train_model.py --mlflow  # team logging
+    python scripts/train/train_model.py                                    # local training only (CPU)
+    python scripts/train/train_model.py --corpus 5000 --epochs 20          # custom hyperparams
+    python scripts/train/train_model.py --mlflow --corpus 10000            # with local MLflow tracking
+    DAGSHUB_REPO_OWNER=user DAGSHUB_REPO_NAME=repo python scripts/train/train_model.py --mlflow  # team logging (DagsHub)
 """
 
 from __future__ import annotations
@@ -21,7 +21,9 @@ from pathlib import Path
 
 import numpy as np
 
-PROJECT_ROOT = Path(__file__).parent.parent
+# Script is at: scripts/train/train_model.py
+# Need to go up 3 levels to reach repo root
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import torch
@@ -30,6 +32,15 @@ from torch.utils.data import Dataset, DataLoader
 
 from src.model.tokenizer import WordTokenizer
 from src.model.transformer import MiniGPT
+
+# Import configuration (DagsHub credentials, paths, etc.)
+try:
+    from config import DAGSHUB_REPO_OWNER, DAGSHUB_REPO_NAME, DAGSHUB_TOKEN
+except ImportError:
+    # Fallback: use environment variables if config.py not available
+    DAGSHUB_REPO_OWNER = None
+    DAGSHUB_REPO_NAME = None
+    DAGSHUB_TOKEN = None
 
 # Optional: import MLflow only if needed
 try:
@@ -53,6 +64,8 @@ except ImportError:
 def setup_mlflow(use_mlflow: bool) -> bool:
     """Initialize MLflow + DagsHub if requested and available.
     
+    DagsHub credentials are read from config.py (preferred) or environment variables.
+    
     Args:
         use_mlflow: Whether to enable MLflow tracking
     
@@ -67,18 +80,41 @@ def setup_mlflow(use_mlflow: bool) -> bool:
         print("  Install with: pip install mlflow dagshub")
         return False
     
-    # Try to initialize DagsHub if credentials are available (team setup)
-    repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
-    repo_name = os.getenv("DAGSHUB_REPO_NAME")
+    # Get DagsHub credentials from config.py first, then fall back to env vars
+    repo_owner = DAGSHUB_REPO_OWNER or os.getenv("DAGSHUB_REPO_OWNER")
+    repo_name = DAGSHUB_REPO_NAME or os.getenv("DAGSHUB_REPO_NAME")
+    token = DAGSHUB_TOKEN or os.getenv("DAGSHUB_TOKEN")
+    
+    # Check if credentials are placeholder values (not set)
+    if repo_owner == "your-dagshub-username" or repo_name == "your-dagshub-username":
+        repo_owner = None
+    if repo_name == "your-dagshub-api-token" or not repo_name:
+        repo_name = None
     
     if repo_owner and repo_name:
         if HAS_DAGSHUB:
             dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
             print(f"✓ Connected to DagsHub: {repo_owner}/{repo_name}")
+            print("  Experiments will be logged to DagsHub.")
         else:
-            print("⚠ DagsHub credentials found but 'dagshub' not installed. Using local MLflow.")
+            print("⚠ DagsHub credentials found but 'dagshub' package not installed.")
+            print("  Install with: pip install dagshub")
+            print("  Using local MLflow only.")
     else:
-        print("ℹ MLflow enabled (local tracking). For team logging, set DAGSHUB_REPO_OWNER and DAGSHUB_REPO_NAME env vars.")
+        print("⚠ MLflow enabled (local tracking only).")
+        print("  Experiments are NOT being logged to DagsHub!")
+        print()
+        print("  To enable team logging to DagsHub, edit config.py and set:")
+        print("    DAGSHUB_REPO_OWNER = 'your-dagshub-username'")
+        print("    DAGSHUB_REPO_NAME = 'nlp-adversarial-defense'")
+        print("    DAGSHUB_TOKEN = 'your-dagshub-api-token'")
+        print()
+        print("  Or set environment variables:")
+        print("    export DAGSHUB_REPO_OWNER='<your-dagshub-username>'")
+        print("    export DAGSHUB_REPO_NAME='nlp-adversarial-defense'")
+        print("    export DAGSHUB_TOKEN='<your-dagshub-api-token>'  (optional)")
+        print()
+        print("  Then run: python scripts/train/train_model.py --mlflow ...")
     
     mlflow.set_experiment("MiniGPT")
     return True
@@ -344,14 +380,16 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Local training only
-  python scripts/train_model.py --corpus 100 --epochs 5
+  # Local training only (CPU)
+  python scripts/train/train_model.py --corpus 100 --epochs 5
 
   # With MLflow/DagsHub (if DAGSHUB_REPO_OWNER and DAGSHUB_REPO_NAME are set)
-  DAGSHUB_REPO_OWNER=youruser DAGSHUB_REPO_NAME=yourrepo python scripts/train_model.py --mlflow
+  DAGSHUB_REPO_OWNER=youruser DAGSHUB_REPO_NAME=yourrepo python scripts/train/train_model.py --mlflow
 
-  # Full 10k corpus with MLflow
-  python scripts/train_model.py --mlflow --corpus 10000 --epochs 30
+  # Full 10k corpus with MLflow + team logging to DagsHub
+  export DAGSHUB_REPO_OWNER=youruser
+  export DAGSHUB_REPO_NAME=nlp-adversarial-defense
+  python scripts/train/train_model.py --mlflow --corpus 10000 --epochs 30
         """,
     )
     p.add_argument(
