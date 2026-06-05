@@ -1,7 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
-from src.language.entities.cfg_base import CFGBase
 from src.language.entities.word_entity import NounEntry, VerbEntry, AdjectiveEntry
 from src.language.reader import JsonReader
 
@@ -18,7 +17,7 @@ class ValidationResult:
 
 
 @dataclass
-class CFGValidator(CFGBase):
+class CFGValidator:
     """
     Validates whether a sentence (as a list of word strings) conforms to:
       1. A valid CFG skeleton (structural match against grammar rules)
@@ -238,73 +237,9 @@ class CFGValidator(CFGBase):
         return None  # all checks passed
 
     # ------------------------------------------------------------------ #
-    #  Skeleton validation                                                 #
+    #  Constraint helpers (mirror CFG._noun_satisfies_constraint)         #
     # ------------------------------------------------------------------ #
 
-    def _validate_skeleton(self, skeleton: list[str]) -> Optional[str]:
-        """
-        Validate that a skeleton (list of NOUN/VERB/ADJ tokens) conforms to grammar rules.
-        
-        Basic structure check: 
-          - Must start with NOUN (optionally preceded by ADJ)
-          - Must contain at least one VERB
-          - Pattern should match: [ADJ]? NOUN (VERB ([ADJ]* NOUN)?)*
-        """
-        if not skeleton:
-            return "Empty skeleton."
-
-        # Must have at least one VERB
-        if "VERB" not in skeleton:
-            return "Skeleton must contain at least one VERB."
-
-        # First token should be NOUN or ADJ (if ADJ, second must be NOUN)
-        if skeleton[0] not in ["NOUN", "ADJ"]:
-            return f"Skeleton must start with NOUN or ADJ, got {skeleton[0]}."
-
-        if skeleton[0] == "ADJ":
-            if len(skeleton) < 2 or skeleton[1] != "NOUN":
-                return "ADJ at start must be followed by NOUN."
-
-        # First VERB index (subject ends here)
-        first_verb_idx = skeleton.index("VERB")
-        
-        # Validate verb chunks after subject
-        remaining = skeleton[first_verb_idx:]
-        i = 0
-        while i < len(remaining):
-            if remaining[i] != "VERB":
-                return f"Expected VERB at position {first_verb_idx + i}, got {remaining[i]}."
-            
-            i += 1
-            if i >= len(remaining):
-                break  # Intransitive verb at end
-            
-            # After VERB, can have:
-            # - NOUN (transitive)
-            # - ADJ... NOUN (one or more ADJs followed by NOUN)
-            # - VERB (next verb chunk)
-            
-            if remaining[i] == "NOUN":
-                i += 1
-            elif remaining[i] == "ADJ":
-                # Consume all consecutive ADJs, then expect NOUN
-                while i < len(remaining) and remaining[i] == "ADJ":
-                    i += 1
-                if i >= len(remaining) or remaining[i] != "NOUN":
-                    return f"ADJ(s) after VERB must be followed by NOUN."
-                i += 1
-            elif remaining[i] == "VERB":
-                # Next verb chunk, continue
-                pass
-            else:
-                return f"Unexpected token in verb chunk: {remaining[i]}."
-
-        return None
-
-
-    # ------------------------------------------------------------------ #
-    #  Constraint helpers (uses CFGBase._noun_satisfies_constraint)       #
-    # ------------------------------------------------------------------ #
 
     def _check_noun_constraint(
         self,
@@ -356,22 +291,10 @@ class CFGValidator(CFGBase):
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def from_cfg(cls, cfg) -> "CFGValidator":
-        """Create a CFGValidator from a CFG instance."""
-        return cls(
-            rules=cfg.rules,
-            nouns=cfg.nouns,
-            verbs=cfg.verbs,
-            adjectives=cfg.adjectives
-        )
+    def from_cfg(cls, cfg: "CFG") -> "CFGValidator":
+        return cls(rules=cfg.rules, nouns=cfg.nouns, verbs=cfg.verbs, adjectives=cfg.adjectives)
 
     @classmethod
     def from_json(cls, file_path: str, nouns=None, verbs=None, adjectives=None) -> "CFGValidator":
-        """Create a CFGValidator from JSON grammar rules file."""
-        data = JsonReader.read(file_path)
-        return cls(
-            rules=data.get("rules", {}),
-            nouns=nouns or [],
-            verbs=verbs or [],
-            adjectives=adjectives or []
-        )
+        data = cls._load_from_json(file_path)
+        return cls(rules=data.get("rules", {}), nouns=nouns or [], verbs=verbs or [], adjectives=adjectives or [])
