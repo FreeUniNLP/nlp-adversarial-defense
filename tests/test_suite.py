@@ -716,6 +716,204 @@ class TestAttackerTransformer(unittest.TestCase):
 
 
 # ================================================================== #
+#  8. RewardComputer tests                                             #
+# ================================================================== #
+
+class TestRewardComputer(unittest.TestCase):
+    """
+    Tests for RewardComputer — reward signal for the attacker.
+
+    Reward levels:
+      A) Grammar failure  → grammar_reward=1.0, total >= 1.0
+      B) Topic mismatch   → grammar_reward=0.0, reward driven by mismatch
+      C) Topic consistent → low reward
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        from src.attacker.reward import RewardComputer, RewardConfig, TopicProfile
+        cls.RewardComputer  = RewardComputer
+        cls.RewardConfig    = RewardConfig
+        cls.TopicProfile    = TopicProfile
+
+        cls.nouns, cls.verbs, cls.adjectives = load_lexicon()
+        cls.rc = RewardComputer(cls.nouns, cls.verbs, cls.adjectives)
+
+        # known-good / known-bad sentences (verified from corpus)
+        cls.VALID_PREFIX   = ["MAN"]
+        cls.VALID_SUFFIX   = ["RUN"]
+        cls.INVALID_PREFIX = ["RIVER"]
+        cls.INVALID_SUFFIX = ["BURN"]       # BURN is incompatible with RIVER
+        cls.HUMAN_PREFIX   = ["STRONG", "MAN", "CARRY"]
+        cls.NATURE_SUFFIX  = ["FOREST", "GROW"]   # very different domain
+
+    # ------------------------------------------------------------------ #
+    #  Reward result structure                                             #
+    # ------------------------------------------------------------------ #
+
+    def test_compute_returns_reward_result(self):
+        from src.attacker.reward import RewardResult
+        result = self.rc.compute(["MAN"], ["RUN"], is_valid=True)
+        self.assertIsInstance(result, RewardResult)
+
+    def test_reward_result_has_all_fields(self):
+        result = self.rc.compute(["MAN"], ["RUN"], is_valid=True)
+        self.assertTrue(hasattr(result, "reward"))
+        self.assertTrue(hasattr(result, "grammar_failure"))
+        self.assertTrue(hasattr(result, "grammar_reward"))
+        self.assertTrue(hasattr(result, "tag_distance"))
+        self.assertTrue(hasattr(result, "axis_distance"))
+        self.assertTrue(hasattr(result, "topic_mismatch"))
+        self.assertTrue(hasattr(result, "prefix_profile"))
+        self.assertTrue(hasattr(result, "suffix_profile"))
+        self.assertTrue(hasattr(result, "cfg_error"))
+
+    # ------------------------------------------------------------------ #
+    #  Component A — grammar failure                                       #
+    # ------------------------------------------------------------------ #
+
+    def test_grammar_failure_sets_grammar_reward_to_one(self):
+        result = self.rc.compute(
+            self.INVALID_PREFIX, self.INVALID_SUFFIX,
+            is_valid=False, cfg_error="Semantic constraint violated"
+        )
+        self.assertEqual(result.grammar_reward, 1.0)
+
+    def test_grammar_failure_flag_is_true_when_invalid(self):
+        result = self.rc.compute(["RIVER"], ["BURN"], is_valid=False)
+        self.assertTrue(result.grammar_failure)
+
+    def test_grammar_failure_flag_is_false_when_valid(self):
+        result = self.rc.compute(["MAN"], ["RUN"], is_valid=True)
+        self.assertFalse(result.grammar_failure)
+
+    def test_grammar_failure_reward_is_zero_for_valid_sentence(self):
+        result = self.rc.compute(["MAN"], ["RUN"], is_valid=True)
+        self.assertEqual(result.grammar_reward, 0.0)
+
+    def test_grammar_failure_dominates_reward(self):
+        """Grammar-failure reward must always exceed pure topic-mismatch reward."""
+        invalid = self.rc.compute(["RIVER"], ["BURN"],   is_valid=False)
+        valid   = self.rc.compute(["MAN"],   ["GROW"],   is_valid=True)
+        self.assertGreater(invalid.reward, valid.reward)
+
+    def test_cfg_error_stored_on_failure(self):
+        err = "Semantic constraint violated: something"
+        result = self.rc.compute(["RIVER"], ["BURN"], is_valid=False, cfg_error=err)
+        self.assertEqual(result.cfg_error, err)
+
+    def test_cfg_error_is_none_on_valid_sentence(self):
+        result = self.rc.compute(["MAN"], ["RUN"], is_valid=True)
+        self.assertIsNone(result.cfg_error)
+
+    # ------------------------------------------------------------------ #
+    #  Component B — topic mismatch                                        #
+    # ------------------------------------------------------------------ #
+
+    def test_identical_words_give_zero_tag_distance(self):
+        result = self.rc.compute(["MAN"], ["MAN"], is_valid=True)
+        self.assertAlmostEqual(result.tag_distance, 0.0, places=6)
+
+    def test_completely_different_domains_give_high_tag_distance(self):
+        """HUMAN words vs MACHINE words should have large tag distance."""
+        result = self.rc.compute(
+            ["MAN", "WOMAN", "CHILD"],         # HUMAN domain
+            ["ALGORITHM", "NETWORK", "SENSOR"], # MACHINE domain
+            is_valid=True,
+        )
+        self.assertGreater(result.tag_distance, 0.5)
+
+    def test_same_words_give_zero_axis_distance(self):
+        result = self.rc.compute(["MAN"], ["MAN"], is_valid=True)
+        self.assertAlmostEqual(result.axis_distance, 0.0, places=6)
+
+    def test_topic_mismatch_in_zero_one_range(self):
+        result = self.rc.compute(self.HUMAN_PREFIX, self.NATURE_SUFFIX, is_valid=True)
+        self.assertGreaterEqual(result.topic_mismatch, 0.0)
+        self.assertLessEqual(result.topic_mismatch,    1.0)
+
+    def test_high_mismatch_gives_higher_reward_than_low_mismatch(self):
+        """Human prefix + nature suffix should outscore human + human."""
+        high = self.rc.compute(
+            ["MAN", "WOMAN"],               # human prefix
+            ["ALGORITHM", "SENSOR"],        # machine suffix  → very different tags
+            is_valid=True,
+        )
+        low = self.rc.compute(
+            ["MAN", "WOMAN"],               # human prefix
+            ["CHILD", "ELDER"],             # also human suffix → very similar tags
+            is_valid=True,
+        )
+        self.assertGreater(high.reward, low.reward)
+
+    # ------------------------------------------------------------------ #
+    #  Reward range and weights                                            #
+    # ------------------------------------------------------------------ #
+
+    def test_reward_is_non_negative(self):
+        for prefix, suffix, valid in [
+            (["MAN"],   ["RUN"],  True),
+            (["RIVER"], ["BURN"], False),
+            ([],        [],       True),
+        ]:
+            result = self.rc.compute(prefix, suffix, is_valid=valid)
+            self.assertGreaterEqual(result.reward, 0.0,
+                msg=f"Negative reward for prefix={prefix}, suffix={suffix}")
+
+    def test_max_reward_is_grammar_plus_full_mismatch(self):
+        """Upper bound: w_grammar*1 + w_mismatch*1 = 1.5 with default config."""
+        cfg = self.RewardConfig(w_grammar=1.0, w_mismatch=0.5)
+        self.assertAlmostEqual(cfg.w_grammar + cfg.w_mismatch, 1.5)
+
+    def test_custom_weights_affect_reward(self):
+        """Doubling w_mismatch should increase the reward for a mismatched pair."""
+        rc_default = self.RewardComputer(
+            self.nouns, self.verbs, self.adjectives,
+            config=self.RewardConfig(w_grammar=0.0, w_mismatch=0.5),
+        )
+        rc_high = self.RewardComputer(
+            self.nouns, self.verbs, self.adjectives,
+            config=self.RewardConfig(w_grammar=0.0, w_mismatch=1.0),
+        )
+        r1 = rc_default.compute(["MAN", "WOMAN"], ["ALGORITHM", "SENSOR"], is_valid=True)
+        r2 = rc_high.compute(   ["MAN", "WOMAN"], ["ALGORITHM", "SENSOR"], is_valid=True)
+        self.assertGreater(r2.reward, r1.reward)
+
+    # ------------------------------------------------------------------ #
+    #  TopicProfile                                                        #
+    # ------------------------------------------------------------------ #
+
+    def test_empty_profile_mean_axis_is_zeros(self):
+        p = self.TopicProfile()
+        self.assertEqual(p.mean_axis(), [0.0, 0.0, 0.0, 0.0])
+
+    def test_profile_tags_accumulate(self):
+        """build_profile for MAN should contain its tags."""
+        result = self.rc.compute(["MAN"], [], is_valid=True)
+        man_entry = next(n for n in self.nouns if n.word == "MAN")
+        for tag in man_entry.tag.tag:
+            self.assertIn(tag, result.prefix_profile.tags)
+
+    def test_profile_word_count(self):
+        result = self.rc.compute(["MAN", "WOMAN", "CHILD"], ["RUN"], is_valid=True)
+        self.assertEqual(result.prefix_profile.word_count, 3)
+        self.assertEqual(result.suffix_profile.word_count, 1)
+
+    def test_unknown_words_are_ignored_gracefully(self):
+        """Words not in lexicon should not crash and not affect profile."""
+        result = self.rc.compute(["UNKNOWN_WORD"], ["ANOTHER_FAKE"], is_valid=True)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.prefix_profile.word_count, 0)
+        self.assertEqual(result.suffix_profile.word_count, 0)
+
+    def test_summary_returns_string(self):
+        result = self.rc.compute(["MAN"], ["RUN"], is_valid=True)
+        summary = result.summary()
+        self.assertIsInstance(summary, str)
+        self.assertIn("Reward", summary)
+
+
+# ================================================================== #
 #  Entry point                                                         #
 # ================================================================== #
 
