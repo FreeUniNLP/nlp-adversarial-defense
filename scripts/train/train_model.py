@@ -76,7 +76,7 @@ def setup_mlflow(use_mlflow: bool) -> bool:
         return False
     
     if not HAS_MLFLOW:
-        print("⚠ --mlflow requested but 'mlflow' not installed. Skipping MLflow tracking.")
+        print("[WARN] --mlflow requested but 'mlflow' not installed. Skipping MLflow tracking.")
         print("  Install with: pip install mlflow dagshub")
         return False
     
@@ -94,14 +94,14 @@ def setup_mlflow(use_mlflow: bool) -> bool:
     if repo_owner and repo_name:
         if HAS_DAGSHUB:
             dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
-            print(f"✓ Connected to DagsHub: {repo_owner}/{repo_name}")
+            print(f"[OK] Connected to DagsHub: {repo_owner}/{repo_name}")
             print("  Experiments will be logged to DagsHub.")
         else:
-            print("⚠ DagsHub credentials found but 'dagshub' package not installed.")
+            print("[WARN] DagsHub credentials found but 'dagshub' package not installed.")
             print("  Install with: pip install dagshub")
             print("  Using local MLflow only.")
     else:
-        print("⚠ MLflow enabled (local tracking only).")
+        print("[WARN] MLflow enabled (local tracking only).")
         print("  Experiments are NOT being logged to DagsHub!")
         print()
         print("  To enable team logging to DagsHub, edit config.py and set:")
@@ -216,8 +216,12 @@ def train(args: argparse.Namespace) -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[logging.FileHandler(log_file), logging.StreamHandler(sys.stdout)],
+        handlers=[
+            logging.FileHandler(log_file, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
     )
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     logger = logging.getLogger(__name__)
     logger.info(f"Training corpus={args.corpus}, epochs={args.epochs}, seed={args.seed}")
     logger.info(f"Logs -> {log_file}")
@@ -326,7 +330,7 @@ def train(args: argparse.Namespace) -> None:
                     "loss": avg_loss,
                     "args": vars(args),
                 }, ckpt_path)
-                logger.info(f"✓ Best checkpoint saved (loss={avg_loss:.4f})")
+                logger.info(f"[BEST] Checkpoint saved (loss={avg_loss:.4f})")
                 
                 if use_tracking:
                     mlflow.log_artifact(str(ckpt_path))

@@ -41,12 +41,12 @@ def load_model(corpus_size: int, device: str = "cpu") -> tuple[MiniGPT, WordToke
 
     if not ckpt_path.exists():
         raise FileNotFoundError(
-            f"❌ Checkpoint not found: {ckpt_path}\n"
+            f"Checkpoint not found: {ckpt_path}\n"
             f"Train first with: python scripts/train/train_model.py --corpus {corpus_size}"
         )
 
     if not corpus_path.exists():
-        raise FileNotFoundError(f"❌ Corpus not found: {corpus_path}")
+        raise FileNotFoundError(f"Corpus not found: {corpus_path}")
 
     # Load tokenizer from saved vocab
     tokenizer = WordTokenizer.from_corpus(corpus_path)
@@ -59,10 +59,10 @@ def load_model(corpus_size: int, device: str = "cpu") -> tuple[MiniGPT, WordToke
     model.to(device)
     model.eval()
 
-    print(f"✓ Loaded model: {ckpt_path.name}")
+    print(f"[OK] Loaded model: {ckpt_path.name}")
     print(f"  Epoch {ckpt['epoch']}, Loss {ckpt['loss']:.4f}")
-    print(f"✓ Tokenizer: {tokenizer.vocab_size} tokens")
-    print(f"✓ Device: {device}")
+    print(f"[OK] Tokenizer: {tokenizer.vocab_size} tokens")
+    print(f"[OK] Device: {device}")
     print()
     return model, tokenizer
 
@@ -96,7 +96,7 @@ def complete_sentence(
     # Check all words exist in vocab
     missing = [w for w in prompt_tokens if w not in tokenizer.token_to_id]
     if missing:
-        return f"❌ Unknown words: {', '.join(missing)}"
+        return f"Unknown words: {', '.join(missing)}"
     
     # Encode and generate
     prompt_ids = [tokenizer.token_to_id[w] for w in prompt_tokens]
@@ -107,30 +107,24 @@ def complete_sentence(
     
     # Generate continuation
     with torch.no_grad():
-        context = torch.tensor([prompt_ids], device=device)
-        
-        # Generate token-by-token until EOS or max_tokens
-        generated_ids = prompt_ids[1:]  # Exclude BOS from output
-        
+        # all_ids holds the full sequence: BOS + prompt + generated so far
+        all_ids = list(prompt_ids)
+
         for _ in range(max_tokens):
-            # Predict next token
+            # Feed only the last context_len tokens to avoid exceeding model limit
+            context = torch.tensor([all_ids[-model.context_len:]], device=device)
             logits = model(context)[:, -1, :] / temperature
             probs = torch.softmax(logits, dim=-1)
             next_id = torch.multinomial(probs, num_samples=1).item()
-            
-            # Stop if EOS
+
             if next_id == tokenizer.eos_id:
                 break
-            
-            generated_ids.append(next_id)
-            
-            # Update context (keep recent tokens only)
-            context = torch.tensor([prompt_ids + generated_ids[-30:]], device=device)
-    
-    # Decode back to text
-    completion = tokenizer.decode(generated_ids)
-    full_sentence = " ".join(prompt_tokens) + " " + completion
-    return full_sentence.strip()
+
+            all_ids.append(next_id)
+
+    # Decode — strip BOS, return full sentence (prompt + generated)
+    output_ids = all_ids[1:]  # remove BOS
+    return tokenizer.decode(output_ids)
 
 
 def interactive_mode(model: MiniGPT, tokenizer: WordTokenizer, args: argparse.Namespace) -> None:
@@ -191,7 +185,7 @@ def interactive_mode(model: MiniGPT, tokenizer: WordTokenizer, args: argparse.Na
             print("\nGoodbye!")
             break
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"[ERROR] {e}")
             print()
 
 
@@ -205,7 +199,7 @@ def batch_mode(model: MiniGPT, tokenizer: WordTokenizer, input_file: str, args: 
         return
     
     results = []
-    with file_path.open() as f:
+    with file_path.open(encoding="utf-8") as f:
         for i, line in enumerate(f, 1):
             prompt = line.strip()
             if not prompt:
@@ -220,10 +214,10 @@ def batch_mode(model: MiniGPT, tokenizer: WordTokenizer, input_file: str, args: 
             results.append((prompt, result))
             print(f"[{i:3d}] {result}")
     
-    print(f"\n✓ Completed {len(results)} sentences")
+    print(f"\n[OK] Completed {len(results)} sentences")
 
 
-def main():
+def main(args: argparse.Namespace) -> None:
     model, tokenizer = load_model(args.corpus, device="cpu")
     
     if args.prompt:
@@ -296,5 +290,5 @@ Commands in interactive mode:
 
 if __name__ == "__main__":
     args = parse_args()
-    main()
+    main(args)
 
