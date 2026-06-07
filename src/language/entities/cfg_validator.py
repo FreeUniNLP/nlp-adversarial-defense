@@ -26,6 +26,11 @@ class CFGValidator:
     Mirrors the generation logic of CFG exactly, but in reverse (parse → validate).
     """
 
+    rules: dict = field(default_factory=dict)
+    nouns: list = field(default_factory=list)
+    verbs: list = field(default_factory=list)
+    adjectives: list = field(default_factory=list)
+
     # ------------------------------------------------------------------ #
     #  Public entry point                                                  #
     # ------------------------------------------------------------------ #
@@ -84,6 +89,72 @@ class CFGValidator:
                 skeleton.append(hits[0])
 
         return skeleton, None
+
+    # ------------------------------------------------------------------ #
+    #  Step 2 – Skeleton validation                                        #
+    # ------------------------------------------------------------------ #
+
+    def _validate_skeleton(self, skeleton: list[str]) -> Optional[str]:
+        pos, ok = self._parse_symbol("START", skeleton, 0)
+        if not ok:
+            return f"Token sequence {skeleton} cannot be derived from START."
+        if pos != len(skeleton):
+            return f"Parsed only {pos}/{len(skeleton)} tokens. Leftover: {skeleton[pos:]}"
+        return None
+
+    def _parse_symbol(self, symbol: str, skeleton: list[str], pos: int) -> tuple[int, bool]:
+        if symbol not in self.rules:
+            if pos < len(skeleton) and skeleton[pos] == symbol:
+                return pos + 1, True
+            return pos, False
+        productions = sorted(self.rules[symbol], key=len, reverse=True)
+        for production in productions:
+            new_pos, ok = self._parse_production(production, skeleton, pos)
+            if ok:
+                return new_pos, True
+        return pos, False
+
+    def _parse_production(self, production: list[str], skeleton: list[str], pos: int) -> tuple[int, bool]:
+        cur = pos
+        for sym in production:
+            cur, ok = self._parse_symbol(sym, skeleton, cur)
+            if not ok:
+                return pos, False
+        return cur, True
+
+    # ------------------------------------------------------------------ #
+    #  Constraint helper                                                   #
+    # ------------------------------------------------------------------ #
+
+    def _noun_satisfies_constraint(
+        self,
+        noun: NounEntry,
+        constraint,
+        adjectives: list[AdjectiveEntry] = None,
+    ) -> bool:
+        if not any(t in noun.tag.tag for t in constraint.tag.tag):
+            return False
+        agency      = noun.axis.agency
+        physicality = noun.axis.physicality
+        social      = noun.axis.social
+        system      = noun.axis.system
+        if adjectives:
+            for adj in adjectives:
+                agency      += adj.axis.agency
+                physicality += adj.axis.physicality
+                social      += adj.axis.social
+                system      += adj.axis.system
+        c_min, c_max = constraint.axis_min, constraint.axis_max
+        return (
+            c_min.agency      <= agency      <= c_max.agency      and
+            c_min.physicality <= physicality <= c_max.physicality and
+            c_min.social      <= social      <= c_max.social      and
+            c_min.system      <= system      <= c_max.system
+        )
+
+    # ------------------------------------------------------------------ #
+    #  Step 3 – Semantic validation                                        #
+    # ------------------------------------------------------------------ #
 
     def _validate_semantics(
         self, tokens: list[str], skeleton: list[str]
