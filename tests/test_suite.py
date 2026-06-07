@@ -411,6 +411,311 @@ class TestMiniGPT(unittest.TestCase):
 
 
 # ================================================================== #
+#  6. CFGStateTracker tests                                            #
+# ================================================================== #
+
+class TestCFGStateTracker(unittest.TestCase):
+    """Tests for CFGStateTracker — grammar state and valid-word filtering."""
+
+    @classmethod
+    def setUpClass(cls):
+        from src.attacker.cfg_state_tracker import CFGStateTracker, GrammarState
+        cls.GrammarState = GrammarState
+        nouns, verbs, adjectives = load_lexicon()
+        cls.tracker = CFGStateTracker(nouns, verbs, adjectives)
+        cls.nouns = nouns
+        cls.verbs = verbs
+        cls.adjectives = adjectives
+
+    def setUp(self):
+        self.tracker.reset()
+
+    # --- initial state ---
+
+    def test_initial_state(self):
+        self.assertEqual(self.tracker.state, self.GrammarState.SUBJECT_START)
+
+    def test_initial_can_end_is_false(self):
+        self.assertFalse(self.tracker.can_end)
+
+    def test_initial_valid_words_includes_nouns_and_adjs(self):
+        words, can_end = self.tracker.valid_next_words()
+        noun_words = {n.word for n in self.nouns}
+        adj_words  = {a.word for a in self.adjectives}
+        self.assertTrue(noun_words & set(words), "Should include nouns")
+        self.assertTrue(adj_words  & set(words), "Should include adjectives")
+        self.assertFalse(can_end)
+
+    def test_initial_valid_words_excludes_verbs(self):
+        words, _ = self.tracker.valid_next_words()
+        verb_words = {v.word for v in self.verbs}
+        self.assertFalse(verb_words & set(words), "Verbs should not appear at subject start")
+
+    # --- stepping with a noun ---
+
+    def test_step_noun_moves_to_after_subject(self):
+        self.tracker.step("MAN")
+        self.assertEqual(self.tracker.state, self.GrammarState.AFTER_SUBJECT)
+
+    def test_after_subject_valid_words_are_all_verbs(self):
+        self.tracker.step("MAN")
+        words, can_end = self.tracker.valid_next_words()
+        verb_words = {v.word for v in self.verbs}
+        self.assertTrue(set(words).issubset(verb_words), "After subject, only verbs allowed")
+        self.assertTrue(can_end)
+
+    def test_step_noun_records_subject(self):
+        self.tracker.step("MAN")
+        self.assertIsNotNone(self.tracker.subject_noun)
+        self.assertEqual(self.tracker.subject_noun.word, "MAN")
+
+    # --- stepping with an adjective ---
+
+    def test_step_adj_moves_to_subject_after_adj(self):
+        words, _ = self.tracker.valid_next_words()
+        adj_words = {a.word for a in self.adjectives}
+        first_adj = next(w for w in words if w in adj_words)
+        self.tracker.step(first_adj)
+        self.assertEqual(self.tracker.state, self.GrammarState.SUBJECT_AFTER_ADJ)
+
+    def test_after_adj_only_nouns_allowed(self):
+        adj_words = {a.word for a in self.adjectives}
+        words, _ = self.tracker.valid_next_words()
+        first_adj = next(w for w in words if w in adj_words)
+        self.tracker.step(first_adj)
+        next_words, _ = self.tracker.valid_next_words()
+        verb_words = {v.word for v in self.verbs}
+        adj_set    = {a.word for a in self.adjectives}
+        self.assertFalse(verb_words & set(next_words), "No verbs after subject ADJ")
+        self.assertFalse(adj_set   & set(next_words), "No adjs after subject ADJ")
+
+    # --- intransitive verb ---
+
+    def test_intransitive_verb_moves_to_after_intrans(self):
+        intrans = [v for v in self.verbs if v.verb_argument.verb_to_object_constraint is None]
+        self.assertTrue(intrans, "Need at least one intransitive verb")
+        self.tracker.step("MAN")
+        # pick a verb MAN can use
+        valid_verbs, _ = self.tracker.valid_next_words()
+        intrans_names = {v.word for v in intrans}
+        chosen = next((w for w in valid_verbs if w in intrans_names), None)
+        if chosen is None:
+            self.skipTest("No intransitive verb valid for MAN")
+        self.tracker.step(chosen)
+        self.assertEqual(self.tracker.state, self.GrammarState.AFTER_INTRANS_VERB)
+
+    def test_after_intrans_verb_can_end(self):
+        self.tracker.step("MAN")
+        valid_verbs, _ = self.tracker.valid_next_words()
+        intrans = {v.word for v in self.verbs if v.verb_argument.verb_to_object_constraint is None}
+        chosen = next((w for w in valid_verbs if w in intrans), None)
+        if chosen is None:
+            self.skipTest("No intransitive verb valid for MAN")
+        self.tracker.step(chosen)
+        self.assertTrue(self.tracker.can_end)
+
+    # --- transitive verb ---
+
+    def test_transitive_verb_moves_to_object_start(self):
+        self.tracker.step("MAN")
+        valid_verbs, _ = self.tracker.valid_next_words()
+        trans = {v.word for v in self.verbs if v.verb_argument.verb_to_object_constraint is not None}
+        chosen = next((w for w in valid_verbs if w in trans), None)
+        if chosen is None:
+            self.skipTest("No transitive verb valid for MAN")
+        self.tracker.step(chosen)
+        self.assertEqual(self.tracker.state, self.GrammarState.OBJECT_START)
+
+    # --- invalid step ---
+
+    def test_invalid_step_returns_false(self):
+        result = self.tracker.step("RUN")   # verb at subject start = invalid
+        self.assertFalse(result)
+
+    def test_invalid_step_does_not_advance_state(self):
+        self.tracker.step("RUN")
+        self.assertEqual(self.tracker.state, self.GrammarState.SUBJECT_START)
+
+    # --- sentence tracking ---
+
+    def test_generated_records_words(self):
+        self.tracker.step("MAN")
+        self.assertEqual(self.tracker.generated, ["MAN"])
+
+    def test_sentence_returns_space_joined(self):
+        self.tracker.step("MAN")
+        self.assertEqual(self.tracker.sentence(), "MAN")
+
+    def test_reset_clears_state(self):
+        self.tracker.step("MAN")
+        self.tracker.reset()
+        self.assertEqual(self.tracker.state, self.GrammarState.SUBJECT_START)
+        self.assertEqual(self.tracker.generated, [])
+        self.assertIsNone(self.tracker.subject_noun)
+
+
+# ================================================================== #
+#  7. AttackerTransformer tests                                        #
+# ================================================================== #
+
+class TestAttackerTransformer(unittest.TestCase):
+    """Tests for AttackerTransformer — CFG-masked generation."""
+
+    @classmethod
+    def setUpClass(cls):
+        import torch
+        from src.attacker.attacker import AttackerTransformer
+        from src.attacker.cfg_state_tracker import CFGStateTracker
+
+        if not CORPUS_PATH.exists():
+            cls.attacker = None
+            return
+
+        nouns, verbs, adjectives = load_lexicon()
+        cls.tokenizer = WordTokenizer.from_corpus(CORPUS_PATH)
+        cls.tracker   = CFGStateTracker(nouns, verbs, adjectives)
+        cls.attacker  = AttackerTransformer(
+            vocab_size=cls.tokenizer.vocab_size,
+            pad_id=cls.tokenizer.pad_id,
+        )
+        cls.attacker.eval()
+
+    def setUp(self):
+        if self.attacker is None:
+            self.skipTest(f"Corpus not found: {CORPUS_PATH}")
+
+    # --- forward pass ---
+
+    def test_forward_output_shape(self):
+        import torch
+        x = torch.tensor([[self.tokenizer.bos_id, 10, 20]])
+        logits = self.attacker(x)
+        B, T, V = logits.shape
+        self.assertEqual(B, 1)
+        self.assertEqual(T, 3)
+        self.assertEqual(V, self.tokenizer.vocab_size)
+
+    # --- generate_prefix ---
+
+    def test_generate_prefix_returns_tuple(self):
+        ids, words = self.attacker.generate_prefix(
+            bos_id=self.tokenizer.bos_id,
+            eos_id=self.tokenizer.eos_id,
+            cfg_tracker=self.tracker,
+            token_to_id=self.tokenizer.token_to_id,
+            id_to_token=self.tokenizer.id_to_token,
+            max_tokens=8,
+        )
+        self.assertIsInstance(ids,   list)
+        self.assertIsInstance(words, list)
+
+    def test_generate_prefix_ids_match_words(self):
+        ids, words = self.attacker.generate_prefix(
+            bos_id=self.tokenizer.bos_id,
+            eos_id=self.tokenizer.eos_id,
+            cfg_tracker=self.tracker,
+            token_to_id=self.tokenizer.token_to_id,
+            id_to_token=self.tokenizer.id_to_token,
+            max_tokens=8,
+        )
+        self.assertEqual(len(ids), len(words))
+        for i, w in zip(ids, words):
+            self.assertEqual(self.tokenizer.id_to_token[i], w)
+
+    def test_generate_prefix_respects_max_tokens(self):
+        for max_t in (1, 3, 5):
+            ids, words = self.attacker.generate_prefix(
+                bos_id=self.tokenizer.bos_id,
+                eos_id=self.tokenizer.eos_id,
+                cfg_tracker=self.tracker,
+                token_to_id=self.tokenizer.token_to_id,
+                id_to_token=self.tokenizer.id_to_token,
+                max_tokens=max_t,
+            )
+            self.assertLessEqual(len(ids), max_t, f"Exceeded max_tokens={max_t}")
+
+    def test_generate_prefix_no_special_tokens(self):
+        special = {self.tokenizer.bos_id, self.tokenizer.eos_id, self.tokenizer.pad_id}
+        for _ in range(5):
+            ids, _ = self.attacker.generate_prefix(
+                bos_id=self.tokenizer.bos_id,
+                eos_id=self.tokenizer.eos_id,
+                cfg_tracker=self.tracker,
+                token_to_id=self.tokenizer.token_to_id,
+                id_to_token=self.tokenizer.id_to_token,
+                max_tokens=8,
+            )
+            for i in ids:
+                self.assertNotIn(i, special, f"Special token {i} in prefix")
+
+    def test_generate_prefix_is_cfg_valid_partial(self):
+        """Every generated prefix must be a structurally valid partial sentence."""
+        from src.attacker.cfg_state_tracker import CFGStateTracker, GrammarState
+        nouns, verbs, adjectives = load_lexicon()
+
+        for _ in range(10):
+            _, words = self.attacker.generate_prefix(
+                bos_id=self.tokenizer.bos_id,
+                eos_id=self.tokenizer.eos_id,
+                cfg_tracker=self.tracker,
+                token_to_id=self.tokenizer.token_to_id,
+                id_to_token=self.tokenizer.id_to_token,
+                max_tokens=8,
+            )
+            # Replay through a fresh tracker — every step must succeed
+            check = CFGStateTracker(nouns, verbs, adjectives)
+            for word in words:
+                ok = check.step(word)
+                self.assertTrue(ok, f"Word '{word}' was invalid in prefix '{' '.join(words)}'")
+
+    # --- generate_prefix_with_log_probs ---
+
+    def test_log_probs_shape_matches_prefix_length(self):
+        import torch
+        ids, words, log_probs = self.attacker.generate_prefix_with_log_probs(
+            bos_id=self.tokenizer.bos_id,
+            eos_id=self.tokenizer.eos_id,
+            cfg_tracker=self.tracker,
+            token_to_id=self.tokenizer.token_to_id,
+            id_to_token=self.tokenizer.id_to_token,
+            max_tokens=8,
+        )
+        self.assertEqual(log_probs.shape[0], len(ids))
+
+    def test_log_probs_are_negative(self):
+        """Log-probabilities must be <= 0."""
+        _, _, log_probs = self.attacker.generate_prefix_with_log_probs(
+            bos_id=self.tokenizer.bos_id,
+            eos_id=self.tokenizer.eos_id,
+            cfg_tracker=self.tracker,
+            token_to_id=self.tokenizer.token_to_id,
+            id_to_token=self.tokenizer.id_to_token,
+            max_tokens=8,
+        )
+        if log_probs.numel() > 0:
+            self.assertTrue(
+                (log_probs <= 0).all(),
+                f"Some log-probs are positive: {log_probs.tolist()}"
+            )
+
+    def test_log_probs_have_grad_fn(self):
+        """log_probs must carry gradients for RL training."""
+        _, _, log_probs = self.attacker.generate_prefix_with_log_probs(
+            bos_id=self.tokenizer.bos_id,
+            eos_id=self.tokenizer.eos_id,
+            cfg_tracker=self.tracker,
+            token_to_id=self.tokenizer.token_to_id,
+            id_to_token=self.tokenizer.id_to_token,
+            max_tokens=8,
+        )
+        if log_probs.numel() > 0:
+            self.assertTrue(
+                log_probs.requires_grad or log_probs.grad_fn is not None,
+                "log_probs must have gradient for RL training"
+            )
+
+
+# ================================================================== #
 #  Entry point                                                         #
 # ================================================================== #
 
