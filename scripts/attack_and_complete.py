@@ -36,6 +36,7 @@ from src.language.entities.cfg_validator import CFGValidator
 from src.attacker.cfg_state_tracker import CFGStateTracker
 from src.attacker.attacker import AttackerTransformer
 from src.attacker.reward import RewardComputer, RewardConfig
+from src.attacker.reward_function import RewardFunction, RewardWeights
 from src.model.tokenizer import WordTokenizer
 from src.model.transformer import MiniGPT
 
@@ -108,6 +109,10 @@ class AttackPipeline:
             nouns=nouns, verbs=verbs, adjectives=adjectives,
             config=RewardConfig(),
         )
+        self.reward_function = RewardFunction(
+            nouns=nouns, verbs=verbs, adjectives=adjectives,
+            weights=RewardWeights(),
+        )
 
         print("Ready.\n")
 
@@ -158,13 +163,14 @@ class AttackPipeline:
         full_sentence = " ".join(full_words)
         result        = self.validator.validate(full_sentence)
 
-        # Step 4 — Reward
-        suffix_words = full_words[len(prefix_words):]   # defender-only portion
-        reward_result = self.reward_computer.compute(
-            prefix_words = prefix_words,
-            suffix_words = suffix_words,
-            is_valid     = result.is_valid,
-            cfg_error    = result.error if not result.is_valid else None,
+        # Step 4 — Reward (structured)
+        prefix_part, suffix_part = self.reward_function.split_sentence(full_words, prefix_words)
+        rf_output = self.reward_function.compute(
+            prefix_words  = prefix_part,
+            suffix_words  = suffix_part,
+            full_sentence = full_sentence,
+            is_valid      = result.is_valid,
+            cfg_error     = result.error if not result.is_valid else None,
         )
 
         return {
@@ -172,7 +178,7 @@ class AttackPipeline:
             "full_sentence": full_sentence,
             "is_valid":      result.is_valid,
             "error":         result.error if not result.is_valid else "",
-            "reward":        reward_result,
+            "reward":        rf_output,
         }
 
     def run(self, n: int = 5) -> None:
@@ -204,10 +210,13 @@ class AttackPipeline:
             if r["error"]:
                 print(f"       Reason    : {r['error']}")
             print(f"       Reward    : grammar={rw.grammar_reward:.2f}"
-                  f"  tag_dist={rw.tag_distance:.3f}"
-                  f"  axis_dist={rw.axis_distance:.3f}"
-                  f"  mismatch={rw.topic_mismatch:.3f}")
+                  f"  noun_tag={rw.distances.noun_tag_dist:.3f}"
+                  f"  verb_tag={rw.distances.verb_tag_dist:.3f}"
+                  f"  adj_tag={rw.distances.adjective_tag_dist:.3f}"
+                  f"  axis={rw.distances.axis_distance:.3f}"
+                  f"  total={rw.reward:.4f}")
             if self.verbose:
+                print()
                 print(rw.summary())
 
         total   = valid_count + invalid_count
