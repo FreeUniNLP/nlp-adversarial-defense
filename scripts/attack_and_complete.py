@@ -4,11 +4,18 @@ AttackPipeline — full adversarial pipeline:
   1. Attacker generates a CFG-valid prefix
   2. MiniGPT completes the prefix into a full sentence
   3. CFGValidator checks if the completed sentence is grammatically correct
+  4. RewardComputer assigns a reward signal to the attacker
+
+Reward levels:
+  A) Grammar failure  → highest reward (1.0 * w_grammar)
+  B) Topic mismatch   → medium reward  (mismatch * w_mismatch)
+  C) Topic consistent → low/zero reward
 
 Usage:
     python scripts/attack_and_complete.py
     python scripts/attack_and_complete.py --n 10
     python scripts/attack_and_complete.py --max-prefix 4 --temperature 0.9
+    python scripts/attack_and_complete.py --verbose   # show reward breakdown
 """
 
 import os
@@ -28,6 +35,8 @@ from src.language.entities.cfg import CFG
 from src.language.entities.cfg_validator import CFGValidator
 from src.attacker.cfg_state_tracker import CFGStateTracker
 from src.attacker.attacker import AttackerTransformer
+from src.attacker.reward import RewardComputer, RewardConfig
+from src.attacker.reward_function import RewardFunction, RewardWeights
 from src.model.tokenizer import WordTokenizer
 from src.model.transformer import MiniGPT
 
@@ -54,12 +63,14 @@ class AttackPipeline:
         attacker_temperature: float = 1.0,
         defender_temperature: float = 0.8,
         device: str = "cpu",
+        verbose: bool = False,
     ):
         self.max_prefix_tokens     = max_prefix_tokens
         self.max_completion_tokens = max_completion_tokens
         self.attacker_temperature  = attacker_temperature
         self.defender_temperature  = defender_temperature
         self.device                = device
+        self.verbose               = verbose
 
         print("Loading lexicon...")
         nouns, verbs, adjectives = LexiconParser.parse(WORDS_PATH)
@@ -92,6 +103,16 @@ class AttackPipeline:
             pad_id=self.tokenizer.pad_id,
         )
         self.attacker.eval()
+
+        print("Building reward computer...")
+        self.reward_computer = RewardComputer(
+            nouns=nouns, verbs=verbs, adjectives=adjectives,
+            config=RewardConfig(),
+        )
+        self.reward_function = RewardFunction(
+            nouns=nouns, verbs=verbs, adjectives=adjectives,
+            weights=RewardWeights(),
+        )
 
         print("Ready.\n")
 
@@ -142,11 +163,22 @@ class AttackPipeline:
         full_sentence = " ".join(full_words)
         result        = self.validator.validate(full_sentence)
 
+        # Step 4 — Reward (structured)
+        prefix_part, suffix_part = self.reward_function.split_sentence(full_words, prefix_words)
+        rf_output = self.reward_function.compute(
+            prefix_words  = prefix_part,
+            suffix_words  = suffix_part,
+            full_sentence = full_sentence,
+            is_valid      = result.is_valid,
+            cfg_error     = result.error if not result.is_valid else None,
+        )
+
         return {
             "prefix":        " ".join(prefix_words) if prefix_words else "(empty)",
             "full_sentence": full_sentence,
             "is_valid":      result.is_valid,
             "error":         result.error if not result.is_valid else "",
+            "reward":        rf_output,
         }
 
     def run(self, n: int = 5) -> None:
@@ -157,30 +189,44 @@ class AttackPipeline:
               f"|  T_atk={self.attacker_temperature}  |  T_def={self.defender_temperature}")
         print("=" * 70)
 
-        valid_count   = 0
-        invalid_count = 0
+        valid_count    = 0
+        invalid_count  = 0
+        total_reward   = 0.0
 
         for i in range(1, n + 1):
-            r = self.run_once()
+            r  = self.run_once()
+            rw = r["reward"]
 
             verdict = "VALID  " if r["is_valid"] else "INVALID"
             if r["is_valid"]:
                 valid_count += 1
             else:
                 invalid_count += 1
+            total_reward += rw.reward
 
-            print(f"\n  [{i:2d}] {verdict}")
+            print(f"\n  [{i:2d}] {verdict}  |  reward={rw.reward:.4f}")
             print(f"       Prefix    : {r['prefix']}")
             print(f"       Full      : {r['full_sentence']}")
             if r["error"]:
                 print(f"       Reason    : {r['error']}")
+            print(f"       Reward    : grammar={rw.grammar_reward:.2f}"
+                  f"  noun_tag={rw.distances.noun_tag_dist:.3f}"
+                  f"  verb_tag={rw.distances.verb_tag_dist:.3f}"
+                  f"  adj_tag={rw.distances.adjective_tag_dist:.3f}"
+                  f"  axis={rw.distances.axis_distance:.3f}"
+                  f"  total={rw.reward:.4f}")
+            if self.verbose:
+                print()
+                print(rw.summary())
 
-        total = valid_count + invalid_count
-        pct   = 100 * valid_count / total if total else 0
+        total   = valid_count + invalid_count
+        pct     = 100 * valid_count / total if total else 0
+        avg_rw  = total_reward / total if total else 0.0
 
         print(f"\n{'=' * 70}")
-        print(f"  VALID   : {valid_count}/{total}  ({pct:.0f}%)")
-        print(f"  INVALID : {invalid_count}/{total}  ({100 - pct:.0f}%)")
+        print(f"  VALID       : {valid_count}/{total}  ({pct:.0f}%)")
+        print(f"  INVALID     : {invalid_count}/{total}  ({100 - pct:.0f}%)")
+        print(f"  AVG REWARD  : {avg_rw:.4f}")
         print("=" * 70)
 
 
@@ -194,6 +240,7 @@ def parse_args():
     p.add_argument("--max-prefix",    type=int,   default=6,   dest="max_prefix",    help="Max attacker prefix tokens (default: 6)")
     p.add_argument("--max-completion",type=int,   default=15,  dest="max_completion",help="Max MiniGPT completion tokens (default: 15)")
     p.add_argument("--atk-temp",      type=float, default=1.0, dest="atk_temp",      help="Attacker temperature (default: 1.0)")
+    p.add_argument("--verbose",       action="store_true",                           help="Show full reward breakdown per sentence")
     p.add_argument("--def-temp",      type=float, default=0.8, dest="def_temp",      help="Defender temperature (default: 0.8)")
     return p.parse_args()
 
@@ -205,5 +252,6 @@ if __name__ == "__main__":
         max_completion_tokens = args.max_completion,
         attacker_temperature  = args.atk_temp,
         defender_temperature  = args.def_temp,
+        verbose               = args.verbose,
     )
     pipeline.run(n=args.n)
