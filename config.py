@@ -19,7 +19,7 @@ DAGSHUB_REPO_NAME = "nlp-adversarial-defense"
 
 # Your DagsHub API token (get from: https://dagshub.com/user/settings/tokens)
 # WARNING: Keep this private! Add config.py to .gitignore if you commit a real token here.
-DAGSHUB_TOKEN = "e76bb0af57b6b04f4b8cba0587227f53c5fb4512"
+DAGSHUB_TOKEN = "0305c6a2b20de4d5f1f1b16f1825405cfa52cac8"
 
 # ================================================================
 #  Optional: Feature Flags
