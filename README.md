@@ -529,6 +529,7 @@ AVG REWARD : 0.64
 | Script | Purpose |
 |---|---|
 | `scripts/train/train_model.py` | Train MiniGPT on a corpus with MLflow logging |
+| `scripts/train/train_attacker.py` | Train the attacker with REINFORCE policy gradient (frozen defender) |
 | `scripts/attack_and_complete.py` | Run the full adversarial attack pipeline |
 | `scripts/demo_reward_function.py` | Step-by-step walkthrough of the reward function |
 | `scripts/infer.py` | Interactive MiniGPT sentence completion |
@@ -554,7 +555,8 @@ All tests use `unittest` and are compatible with `pytest`. Each component has it
 | `test_attacker_transformer.py` | 9 | CFG-masked generation, log-prob gradients |
 | `test_reward_computer.py` | 22 | Grammar component, mismatch component, TopicProfile |
 | `test_reward_function.py` | 54 | FeatureExtractor, DistanceCalculator, split, compute, weights |
-| **Total** | **151** | **all passing** |
+| `test_train_attacker.py` |  4 | REINFORCE loop smoke: gradient flow, optimizer steps, EMA baseline |
+| **Total** | **155** | **all passing** |
 
 Run all tests:
 
@@ -619,6 +621,52 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 $env:KMP_DUPLICATE_LIB_OK="TRUE"
 python scripts/train/train_model.py
 ```
+
+### Train the attacker (REINFORCE)
+
+Updates the attacker's policy to maximise reward against the *frozen* defender:
+
+```
+loss = -(reward - baseline) * sum(log_probs)
+```
+
+```powershell
+$env:KMP_DUPLICATE_LIB_OK="TRUE"
+
+# 2000 episodes, local logging only
+python scripts/train/train_attacker.py --episodes 2000
+
+# Longer run with MLflow / DagsHub tracking
+python scripts/train/train_attacker.py --episodes 10000 --mlflow
+```
+
+What it does each episode:
+1. Attacker samples a CFG-valid prefix (gradients tracked through `log_probs`).
+2. Frozen MiniGPT completes the prefix.
+3. `CFGValidator` checks the full sentence; `RewardFunction` returns a scalar.
+4. REINFORCE loss is computed with an EMA baseline for variance reduction.
+5. Gradients flow only through the attacker; the defender is fully frozen.
+
+Outputs:
+- `data/models/attacker_best.pt`  — best rolling-avg-reward checkpoint
+- `data/models/attacker_final.pt` — final-episode checkpoint
+- `logs/attacker_episodes_seed{S}.csv` — per-episode prefix / completion / reward
+- `logs/train_attacker_seed{S}.log` — training log
+- MLflow metrics (if `--mlflow`): `avg_reward`, `grammar_fail_rate`, `baseline`, `avg_loss`
+
+Useful flags:
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--episodes` | 2000 | Number of REINFORCE updates |
+| `--lr` | 3e-4 | AdamW learning rate |
+| `--max-prefix` | 6 | Max attacker prefix length |
+| `--atk-temp` | 1.0 | Attacker sampling temperature |
+| `--def-temp` | 0.8 | Defender sampling temperature |
+| `--w-grammar` / `--w-tag` / `--w-axis` | 1.0 / 0.30 / 0.20 | Reward component weights |
+| `--baseline-alpha` | 0.05 | EMA smoothing rate for the reward baseline |
+| `--entropy-coef` | 0.0 | Optional entropy bonus (encourage exploration) |
+| `--window` | 100 | Rolling window for best-checkpoint averaging |
 
 ### Complete a sentence interactively
 
