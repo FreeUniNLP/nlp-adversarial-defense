@@ -946,8 +946,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "TRANSPORT",
-              "HUMAN"
+              "TRANSPORT"
             ],
             "min_axis": {
               "agency": 2,
@@ -985,8 +984,7 @@
               "ALIVE",
               "OBJECT",
               "DEVICE",
-              "TRANSPORT",
-              "HUMAN"
+              "TRANSPORT"
             ],
             "min_axis": {
               "agency": 0,
@@ -1022,8 +1020,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "TRANSPORT",
-              "HUMAN"
+              "TRANSPORT"
             ],
             "min_axis": {
               "agency": 2,
@@ -1045,8 +1042,7 @@
             "tags_any": [
               "OBJECT",
               "ALIVE",
-              "TRANSPORT",
-              "HUMAN"
+              "TRANSPORT"
             ],
             "min_axis": {
               "agency": 0,
@@ -1083,8 +1079,7 @@
             "tags_any": [
               "HUMAN",
               "DEVICE",
-              "OBJECT",
-              "ALIVE"
+              "OBJECT"
             ],
             "min_axis": {
               "agency": 3,
@@ -1107,8 +1102,7 @@
               "OBJECT",
               "DEVICE",
               "PLACE",
-              "ARTIFACT",
-              "ALIVE"
+              "ARTIFACT"
             ],
             "min_axis": {
               "agency": 0,
@@ -1145,8 +1139,7 @@
             "tags_any": [
               "ALIVE",
               "DEVICE",
-              "OBJECT",
-              "HUMAN"
+              "OBJECT"
             ],
             "min_axis": {
               "agency": 2,
@@ -1168,8 +1161,7 @@
             "tags_any": [
               "OBJECT",
               "DEVICE",
-              "STRUCTURE",
-              "ALIVE"
+              "STRUCTURE"
             ],
             "min_axis": {
               "agency": 0,
@@ -1206,8 +1198,7 @@
             "tags_any": [
               "ALIVE",
               "DEVICE",
-              "OBJECT",
-              "HUMAN"
+              "OBJECT"
             ],
             "min_axis": {
               "agency": 1,
@@ -1230,8 +1221,7 @@
               "OBJECT",
               "DEVICE",
               "ALIVE",
-              "PLACE",
-              "HUMAN"
+              "PLACE"
             ],
             "min_axis": {
               "agency": 0,
@@ -1267,8 +1257,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "OBJECT",
-              "HUMAN"
+              "OBJECT"
             ],
             "min_axis": {
               "agency": 2,
@@ -1290,8 +1279,7 @@
             "tags_any": [
               "OBJECT",
               "DEVICE",
-              "ALIVE",
-              "HUMAN"
+              "ALIVE"
             ],
             "min_axis": {
               "agency": 0,
@@ -1329,8 +1317,7 @@
               "OBJECT",
               "ENERGY",
               "ALIVE",
-              "ORGANIC",
-              "HUMAN"
+              "ORGANIC"
             ],
             "min_axis": {
               "agency": 0,
@@ -1368,8 +1355,7 @@
               "ALIVE",
               "OBJECT",
               "ABSTRACT",
-              "SYSTEM",
-              "HUMAN"
+              "SYSTEM"
             ],
             "min_axis": {
               "agency": 0,
@@ -1406,8 +1392,7 @@
             "tags_any": [
               "ALIVE",
               "DEVICE",
-              "SIGNAL",
-              "HUMAN"
+              "SIGNAL"
             ],
             "min_axis": {
               "agency": 1,
@@ -1431,8 +1416,7 @@
               "OBJECT",
               "DEVICE",
               "PLACE",
-              "SIGNAL",
-              "HUMAN"
+              "SIGNAL"
             ],
             "min_axis": {
               "agency": 0,
@@ -1469,8 +1453,7 @@
             "tags_any": [
               "ALIVE",
               "DEVICE",
-              "SIGNAL",
-              "HUMAN"
+              "SIGNAL"
             ],
             "min_axis": {
               "agency": 1,
@@ -1494,8 +1477,7 @@
               "OBJECT",
               "DEVICE",
               "ABSTRACT",
-              "SIGNAL",
-              "HUMAN"
+              "SIGNAL"
             ],
             "min_axis": {
               "agency": 0,
@@ -1532,8 +1514,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "ABSTRACT",
-              "OBJECT"
+              "ABSTRACT"
             ],
             "min_axis": {
               "agency": 3,
@@ -1556,8 +1537,7 @@
               "ABSTRACT",
               "ALIVE",
               "PLACE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 0,
@@ -1593,8 +1573,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 2,
@@ -1618,8 +1597,7 @@
               "ALIVE",
               "PLACE",
               "OBJECT",
-              "HUMAN",
-              "ANIMAL"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 0,
@@ -1656,8 +1634,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "PLACE",
-              "OBJECT"
+              "PLACE"
             ],
             "min_axis": {
               "agency": 3,
@@ -1681,8 +1658,7 @@
               "ALIVE",
               "OBJECT",
               "PLACE",
-              "HUMAN",
-              "ANIMAL"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 0,
@@ -1719,8 +1695,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "ORGANIC",
-              "OBJECT"
+              "ORGANIC"
             ],
             "min_axis": {
               "agency": 4,
@@ -1744,8 +1719,7 @@
               "ALIVE",
               "PLACE",
               "OBJECT",
-              "ORGANIC",
-              "HUMAN"
+              "ORGANIC"
             ],
             "min_axis": {
               "agency": 0,
@@ -1781,8 +1755,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 2,
@@ -1804,8 +1777,7 @@
             "tags_any": [
               "ABSTRACT",
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 0,
@@ -1841,8 +1813,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 2,
@@ -1867,8 +1838,7 @@
               "DEVICE",
               "PLACE",
               "ABSTRACT",
-              "HUMAN",
-              "ANIMAL"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 0,
@@ -1904,8 +1874,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 3,
@@ -1927,8 +1896,7 @@
             "tags_any": [
               "ALIVE",
               "ABSTRACT",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 0,
@@ -1965,8 +1933,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "PLACE",
-              "OBJECT"
+              "PLACE"
             ],
             "min_axis": {
               "agency": 3,
@@ -2003,8 +1970,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "PLACE",
-              "OBJECT"
+              "PLACE"
             ],
             "min_axis": {
               "agency": 3,
@@ -2025,8 +1991,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 2,
@@ -2063,8 +2028,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "PLACE",
-              "OBJECT"
+              "PLACE"
             ],
             "min_axis": {
               "agency": 3,
@@ -2085,8 +2049,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 1,
@@ -2122,8 +2085,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 2,
@@ -2144,8 +2106,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 1,
@@ -2182,8 +2143,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "PLACE",
-              "OBJECT"
+              "PLACE"
             ],
             "min_axis": {
               "agency": 3,
@@ -2204,8 +2164,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 1,
@@ -2241,8 +2200,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 2,
@@ -2265,8 +2223,7 @@
               "ALIVE",
               "DEVICE",
               "PLACE",
-              "HUMAN",
-              "OBJECT"
+              "HUMAN"
             ],
             "min_axis": {
               "agency": 0,
@@ -2302,8 +2259,7 @@
           "constraints": {
             "tags_any": [
               "ALIVE",
-              "TRANSPORT",
-              "HUMAN"
+              "TRANSPORT"
             ],
             "min_axis": {
               "agency": 2,
@@ -2325,8 +2281,7 @@
             "tags_any": [
               "ALIVE",
               "ABSTRACT",
-              "TRANSPORT",
-              "HUMAN"
+              "TRANSPORT"
             ],
             "min_axis": {
               "agency": 0,
@@ -2363,8 +2318,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "ABSTRACT",
-              "OBJECT"
+              "ABSTRACT"
             ],
             "min_axis": {
               "agency": 3,
@@ -2386,8 +2340,7 @@
             "tags_any": [
               "ALIVE",
               "HUMAN",
-              "ABSTRACT",
-              "OBJECT"
+              "ABSTRACT"
             ],
             "min_axis": {
               "agency": 3,
@@ -2424,8 +2377,7 @@
             "tags_any": [
               "DEVICE",
               "ALIVE",
-              "OBJECT",
-              "HUMAN"
+              "OBJECT"
             ],
             "min_axis": {
               "agency": 1,
@@ -2447,8 +2399,7 @@
             "tags_any": [
               "ABSTRACT",
               "SIGNAL",
-              "OBJECT",
-              "ALIVE"
+              "OBJECT"
             ],
             "min_axis": {
               "agency": 0,
@@ -2485,8 +2436,7 @@
             "tags_any": [
               "DEVICE",
               "ALIVE",
-              "ABSTRACT",
-              "HUMAN"
+              "ABSTRACT"
             ],
             "min_axis": {
               "agency": 1,
@@ -2507,8 +2457,7 @@
           "constraints": {
             "tags_any": [
               "ABSTRACT",
-              "SYSTEM",
-              "OBJECT"
+              "SYSTEM"
             ],
             "min_axis": {
               "agency": 0,
@@ -2545,8 +2494,7 @@
             "tags_any": [
               "DEVICE",
               "ABSTRACT",
-              "SYSTEM",
-              "OBJECT"
+              "SYSTEM"
             ],
             "min_axis": {
               "agency": 0,
@@ -2583,8 +2531,7 @@
             "tags_any": [
               "DEVICE",
               "ALIVE",
-              "ABSTRACT",
-              "HUMAN"
+              "ABSTRACT"
             ],
             "min_axis": {
               "agency": 1,
@@ -2606,8 +2553,7 @@
             "tags_any": [
               "ABSTRACT",
               "DEVICE",
-              "SYSTEM",
-              "OBJECT"
+              "SYSTEM"
             ],
             "min_axis": {
               "agency": 0,
@@ -2644,8 +2590,7 @@
             "tags_any": [
               "DEVICE",
               "ALIVE",
-              "ABSTRACT",
-              "HUMAN"
+              "ABSTRACT"
             ],
             "min_axis": {
               "agency": 1,
@@ -2667,8 +2612,7 @@
             "tags_any": [
               "ABSTRACT",
               "SIGNAL",
-              "SYSTEM",
-              "OBJECT"
+              "SYSTEM"
             ],
             "min_axis": {
               "agency": 0,
@@ -2706,8 +2650,7 @@
               "ABSTRACT",
               "OBJECT",
               "ALIVE",
-              "SYSTEM",
-              "HUMAN"
+              "SYSTEM"
             ],
             "min_axis": {
               "agency": 0,
@@ -2742,8 +2685,7 @@
           "OBJECT",
           "DEVICE",
           "PLACE",
-          "ORGANIC",
-          "HUMAN"
+          "ORGANIC"
         ],
         "min_axis": {
           "physicality": 2
@@ -2767,8 +2709,7 @@
           "ALIVE",
           "OBJECT",
           "DEVICE",
-          "ORGANIC",
-          "HUMAN"
+          "ORGANIC"
         ],
         "min_axis": {
           "physicality": 3
@@ -2792,8 +2733,7 @@
           "OBJECT",
           "DEVICE",
           "ALIVE",
-          "ORGANIC",
-          "HUMAN"
+          "ORGANIC"
         ],
         "min_axis": {
           "physicality": 3
@@ -2817,8 +2757,7 @@
         "tags_any": [
           "OBJECT",
           "ALIVE",
-          "DEVICE",
-          "HUMAN"
+          "DEVICE"
         ],
         "min_axis": {
           "physicality": 3
@@ -2843,8 +2782,7 @@
           "PLACE",
           "ABSTRACT",
           "SYSTEM",
-          "OBJECT",
-          "ALIVE"
+          "OBJECT"
         ],
         "min_axis": {
           "physicality": 0
@@ -2869,8 +2807,7 @@
           "ALIVE",
           "OBJECT",
           "DEVICE",
-          "ORGANIC",
-          "HUMAN"
+          "ORGANIC"
         ],
         "min_axis": {
           "physicality": 3
@@ -2895,8 +2832,7 @@
           "ALIVE",
           "OBJECT",
           "DEVICE",
-          "ORGANIC",
-          "HUMAN"
+          "ORGANIC"
         ],
         "min_axis": {
           "physicality": 3
@@ -2921,8 +2857,7 @@
           "ALIVE",
           "DEVICE",
           "ABSTRACT",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 1
@@ -2947,8 +2882,7 @@
           "ALIVE",
           "DEVICE",
           "ABSTRACT",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 1
@@ -2973,8 +2907,7 @@
           "OBJECT",
           "DEVICE",
           "ALIVE",
-          "ORGANIC",
-          "HUMAN"
+          "ORGANIC"
         ],
         "min_axis": {
           "physicality": 2
@@ -2999,8 +2932,7 @@
           "OBJECT",
           "DEVICE",
           "ALIVE",
-          "ORGANIC",
-          "HUMAN"
+          "ORGANIC"
         ],
         "min_axis": {
           "physicality": 2
@@ -3025,8 +2957,7 @@
           "ALIVE",
           "OBJECT",
           "PLACE",
-          "HUMAN",
-          "ABSTRACT"
+          "HUMAN"
         ],
         "min_axis": {
           "physicality": 2
@@ -3051,8 +2982,7 @@
           "ALIVE",
           "OBJECT",
           "PLACE",
-          "HUMAN",
-          "ABSTRACT"
+          "HUMAN"
         ],
         "min_axis": {
           "physicality": 2
@@ -3075,8 +3005,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 2
@@ -3099,8 +3028,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 2
@@ -3123,8 +3051,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 2
@@ -3148,8 +3075,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 2
@@ -3172,8 +3098,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 4
@@ -3196,8 +3121,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 3
@@ -3221,8 +3145,7 @@
         "tags_any": [
           "ALIVE",
           "ABSTRACT",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 1
@@ -3245,8 +3168,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 1
@@ -3270,8 +3192,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 2
@@ -3295,8 +3216,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 3
@@ -3319,8 +3239,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 0
@@ -3344,8 +3263,7 @@
         "tags_any": [
           "DEVICE",
           "OBJECT",
-          "ALIVE",
-          "HUMAN"
+          "ALIVE"
         ],
         "min_axis": {
           "physicality": 3
@@ -3370,8 +3288,7 @@
           "DEVICE",
           "ALIVE",
           "ABSTRACT",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 1
@@ -3396,8 +3313,7 @@
           "DEVICE",
           "ALIVE",
           "ABSTRACT",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "agency": 1
@@ -3420,8 +3336,7 @@
         "tags_any": [
           "ALIVE",
           "PLACE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "social": 1
@@ -3446,8 +3361,7 @@
           "ALIVE",
           "DEVICE",
           "PLACE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "social": 0
@@ -3471,8 +3385,7 @@
         "tags_any": [
           "ALIVE",
           "ABSTRACT",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "social": 1
@@ -3495,8 +3408,7 @@
       "constraints": {
         "tags_any": [
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "social": 1
@@ -3520,8 +3432,7 @@
           "ALIVE",
           "OBJECT",
           "PLACE",
-          "HUMAN",
-          "ABSTRACT"
+          "HUMAN"
         ],
         "min_axis": {
           "social": 1
@@ -3546,8 +3457,7 @@
           "ALIVE",
           "ABSTRACT",
           "PLACE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "social": 0
@@ -3571,8 +3481,7 @@
           "ABSTRACT",
           "DEVICE",
           "ALIVE",
-          "SYSTEM",
-          "HUMAN"
+          "SYSTEM"
         ],
         "min_axis": {
           "system": 1
@@ -3596,8 +3505,7 @@
           "ABSTRACT",
           "DEVICE",
           "OBJECT",
-          "SYSTEM",
-          "ALIVE"
+          "SYSTEM"
         ],
         "min_axis": {
           "system": 1
@@ -3622,8 +3530,7 @@
           "ABSTRACT",
           "PLACE",
           "DEVICE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "system": 0
@@ -3649,8 +3556,7 @@
           "PLACE",
           "ALIVE",
           "DEVICE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "system": 0
@@ -3674,8 +3580,7 @@
         "tags_any": [
           "ABSTRACT",
           "DEVICE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "system": 2
@@ -3700,8 +3605,7 @@
           "ABSTRACT",
           "DEVICE",
           "ALIVE",
-          "HUMAN",
-          "OBJECT"
+          "HUMAN"
         ],
         "min_axis": {
           "system": 1
@@ -3725,8 +3629,7 @@
         "tags_any": [
           "DEVICE",
           "ABSTRACT",
-          "ALIVE",
-          "HUMAN"
+          "ALIVE"
         ],
         "min_axis": {
           "system": 2
@@ -3750,8 +3653,7 @@
         "tags_any": [
           "ABSTRACT",
           "DEVICE",
-          "ALIVE",
-          "HUMAN"
+          "ALIVE"
         ],
         "min_axis": {
           "system": 2
