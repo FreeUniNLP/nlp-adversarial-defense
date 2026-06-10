@@ -25,6 +25,11 @@ import sys
 import argparse
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -40,10 +45,53 @@ from src.attacker.reward_function import RewardFunction, RewardWeights
 from src.model.tokenizer import WordTokenizer
 from src.model.transformer import MiniGPT
 
+try:
+    from config import DAGSHUB_REPO_OWNER, DAGSHUB_REPO_NAME, DAGSHUB_TOKEN
+except ImportError:
+    DAGSHUB_REPO_OWNER = None
+    DAGSHUB_REPO_NAME = None
+    DAGSHUB_TOKEN = None
+
+try:
+    import mlflow
+    HAS_MLFLOW = True
+except ImportError:
+    HAS_MLFLOW = False
+    mlflow = None
+
+try:
+    import dagshub
+    HAS_DAGSHUB = True
+except ImportError:
+    HAS_DAGSHUB = False
+    dagshub = None
+
 WORDS_PATH      = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "words.json"
 TRANSITION_PATH = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "transition.json"
 CORPUS_PATH     = PROJECT_ROOT / "data" / "raw" / "generated_texts" / "generated_corpus_10000.txt"
 CKPT_PATH       = PROJECT_ROOT / "data" / "models" / "minigpt_corpus10000.pt"
+
+
+def setup_mlflow(use_mlflow: bool) -> bool:
+    if not use_mlflow:
+        return False
+    if not HAS_MLFLOW:
+        print("[WARN] --mlflow requested but 'mlflow' not installed.")
+        return False
+    repo_owner = DAGSHUB_REPO_OWNER or os.getenv("DAGSHUB_REPO_OWNER")
+    repo_name  = DAGSHUB_REPO_NAME  or os.getenv("DAGSHUB_REPO_NAME")
+    token      = DAGSHUB_TOKEN      or os.getenv("DAGSHUB_USER_TOKEN")
+    if repo_owner and repo_name and HAS_DAGSHUB:
+        if token:
+            os.environ["DAGSHUB_USER_TOKEN"] = token
+            os.environ["MLFLOW_TRACKING_USERNAME"] = repo_owner
+            os.environ["MLFLOW_TRACKING_PASSWORD"] = token
+        dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
+        print(f"[OK] Connected to DagsHub: {repo_owner}/{repo_name}")
+    else:
+        print("[WARN] MLflow enabled (local tracking only).")
+    mlflow.set_experiment("AttackBenchmark")
+    return True
 
 
 # ------------------------------------------------------------------ #
@@ -64,6 +112,7 @@ class AttackPipeline:
         defender_temperature: float = 0.8,
         device: str = "cpu",
         verbose: bool = False,
+        attacker_ckpt: str | None = None,
     ):
         self.max_prefix_tokens     = max_prefix_tokens
         self.max_completion_tokens = max_completion_tokens
@@ -97,11 +146,18 @@ class AttackPipeline:
         self.defender.eval()
         print(f"  Loaded epoch {ckpt['epoch']}, loss {ckpt['loss']:.4f}")
 
-        print("Building attacker (untrained)...")
         self.attacker = AttackerTransformer(
             vocab_size=self.tokenizer.vocab_size,
             pad_id=self.tokenizer.pad_id,
         )
+        if attacker_ckpt:
+            print(f"Loading attacker checkpoint: {attacker_ckpt}")
+            atk_ckpt = torch.load(attacker_ckpt, map_location=device, weights_only=False)
+            self.attacker.load_state_dict(atk_ckpt["model_state"])
+            print(f"  Loaded episode {atk_ckpt.get('episode', '?')}, avg_reward {atk_ckpt.get('avg_reward', float('nan')):.4f}")
+        else:
+            print("Building attacker (untrained)...")
+        self.attacker.to(device)
         self.attacker.eval()
 
         print("Building reward computer...")
@@ -181,8 +237,21 @@ class AttackPipeline:
             "reward":        rf_output,
         }
 
-    def run(self, n: int = 5) -> None:
+    def run(self, n: int = 5, use_mlflow: bool = False, attacker_ckpt_path: str | None = None) -> None:
         """Run n attack iterations and print a summary table."""
+        import csv
+
+        if use_mlflow:
+            mlflow.start_run()
+            mlflow.log_params({
+                "n":                     n,
+                "max_prefix_tokens":     self.max_prefix_tokens,
+                "max_completion_tokens": self.max_completion_tokens,
+                "attacker_temperature":  self.attacker_temperature,
+                "defender_temperature":  self.defender_temperature,
+                "attacker_ckpt":         attacker_ckpt_path or "untrained",
+                "defender_ckpt":         str(CKPT_PATH.name),
+            })
 
         print("=" * 70)
         print(f"  ATTACK PIPELINE  |  n={n}  |  prefix_max={self.max_prefix_tokens}  "
@@ -192,6 +261,22 @@ class AttackPipeline:
         valid_count    = 0
         invalid_count  = 0
         total_reward   = 0.0
+        total_grammar  = 0.0
+        total_noun     = 0.0
+        total_verb     = 0.0
+        total_adj      = 0.0
+        total_axis     = 0.0
+
+        logs_dir = PROJECT_ROOT / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        csv_path = logs_dir / "benchmark_iterations.csv"
+        csv_file = csv_path.open("w", newline="", encoding="utf-8")
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow([
+            "iteration", "prefix", "full_sentence", "is_valid", "reward",
+            "grammar_reward", "noun_tag_dist", "verb_tag_dist",
+            "adjective_tag_dist", "axis_distance", "error",
+        ])
 
         for i in range(1, n + 1):
             r  = self.run_once()
@@ -202,7 +287,26 @@ class AttackPipeline:
                 valid_count += 1
             else:
                 invalid_count += 1
-            total_reward += rw.reward
+            total_reward  += rw.reward
+            total_grammar += rw.grammar_reward
+            total_noun    += rw.distances.noun_tag_dist
+            total_verb    += rw.distances.verb_tag_dist
+            total_adj     += rw.distances.adjective_tag_dist
+            total_axis    += rw.distances.axis_distance
+
+            csv_writer.writerow([
+                i, r["prefix"], r["full_sentence"], int(r["is_valid"]),
+                f"{rw.reward:.4f}", f"{rw.grammar_reward:.4f}",
+                f"{rw.distances.noun_tag_dist:.4f}",
+                f"{rw.distances.verb_tag_dist:.4f}",
+                f"{rw.distances.adjective_tag_dist:.4f}",
+                f"{rw.distances.axis_distance:.4f}",
+                r["error"],
+            ])
+
+            if use_mlflow:
+                mlflow.log_metric("iter_reward", rw.reward, step=i)
+                mlflow.log_metric("iter_invalid", 0 if r["is_valid"] else 1, step=i)
 
             print(f"\n  [{i:2d}] {verdict}  |  reward={rw.reward:.4f}")
             print(f"       Prefix    : {r['prefix']}")
@@ -219,6 +323,8 @@ class AttackPipeline:
                 print()
                 print(rw.summary())
 
+        csv_file.close()
+
         total   = valid_count + invalid_count
         pct     = 100 * valid_count / total if total else 0
         avg_rw  = total_reward / total if total else 0.0
@@ -228,6 +334,19 @@ class AttackPipeline:
         print(f"  INVALID     : {invalid_count}/{total}  ({100 - pct:.0f}%)")
         print(f"  AVG REWARD  : {avg_rw:.4f}")
         print("=" * 70)
+
+        if use_mlflow and total:
+            mlflow.log_metric("valid_count",         valid_count)
+            mlflow.log_metric("invalid_count",       invalid_count)
+            mlflow.log_metric("invalid_rate",        invalid_count / total)
+            mlflow.log_metric("avg_reward",          avg_rw)
+            mlflow.log_metric("avg_grammar_reward", total_grammar / total)
+            mlflow.log_metric("avg_noun_tag_dist",  total_noun    / total)
+            mlflow.log_metric("avg_verb_tag_dist",  total_verb    / total)
+            mlflow.log_metric("avg_adj_tag_dist",   total_adj     / total)
+            mlflow.log_metric("avg_axis_distance", total_axis    / total)
+            mlflow.log_artifact(str(csv_path))
+            mlflow.end_run()
 
 
 # ------------------------------------------------------------------ #
@@ -242,16 +361,20 @@ def parse_args():
     p.add_argument("--atk-temp",      type=float, default=1.0, dest="atk_temp",      help="Attacker temperature (default: 1.0)")
     p.add_argument("--verbose",       action="store_true",                           help="Show full reward breakdown per sentence")
     p.add_argument("--def-temp",      type=float, default=0.8, dest="def_temp",      help="Defender temperature (default: 0.8)")
+    p.add_argument("--attacker-ckpt", type=str,   default=None, dest="attacker_ckpt", help="Path to attacker checkpoint (default: untrained attacker)")
+    p.add_argument("--mlflow",        action="store_true",                            help="Log benchmark to MLflow / DagsHub")
     return p.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
+    use_tracking = setup_mlflow(args.mlflow)
     pipeline = AttackPipeline(
         max_prefix_tokens     = args.max_prefix,
         max_completion_tokens = args.max_completion,
         attacker_temperature  = args.atk_temp,
         defender_temperature  = args.def_temp,
         verbose               = args.verbose,
+        attacker_ckpt         = args.attacker_ckpt,
     )
-    pipeline.run(n=args.n)
+    pipeline.run(n=args.n, use_mlflow=use_tracking, attacker_ckpt_path=args.attacker_ckpt)
