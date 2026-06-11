@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/NLP/final/nlp-adversarial-defense/mlruns/432338628484543510/e06f625f41ef495db3465159908b9d2c/artifacts
+end_time: 1781187860126
+entry_point_name: ''
+experiment_id: '432338628484543510'
+lifecycle_stage: active
+run_id: e06f625f41ef495db3465159908b9d2c
+run_name: intelligent-eel-228
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781187510891
+status: 3
+tags: []
+user_id: User

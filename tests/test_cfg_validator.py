@@ -35,6 +35,24 @@ class TestCFGValidator(unittest.TestCase):
         result = self.validator.validate("CONNECTED BIRD BREAK SMALL STRONG WEAPON")
         self.assertTrue(result.is_valid, f"Expected valid, got: {result.error}")
 
+    # --- verb chains (rule: VERB_TERM -> VERB VERB_TERM) ---
+
+    def test_valid_verb_chain_after_intransitive(self):
+        """A bare intransitive verb may be followed by another verb."""
+        result = self.validator.validate("MAN RUN FALL")
+        self.assertTrue(result.is_valid, f"Expected valid, got: {result.error}")
+
+    def test_valid_verb_chain_intrans_then_transitive(self):
+        """A transitive verb (with its object) may chain after an intransitive verb."""
+        result = self.validator.validate("MAN RUN EAT FOOD")
+        self.assertTrue(result.is_valid, f"Expected valid, got: {result.error}")
+
+    def test_invalid_transitive_verb_without_object_in_chain(self):
+        """A transitive verb still requires its object before the chain continues."""
+        # EAT is transitive: "MAN EAT RUN" gives EAT no object
+        result = self.validator.validate("MAN EAT RUN")
+        self.assertFalse(result.is_valid)
+
     # --- invalid sentences ---
 
     def test_invalid_empty_sentence(self):

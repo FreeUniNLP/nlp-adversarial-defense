@@ -106,9 +106,18 @@ def setup_mlflow(use_mlflow: bool) -> bool:
             os.environ["DAGSHUB_USER_TOKEN"] = token
             os.environ["MLFLOW_TRACKING_USERNAME"] = repo_owner
             os.environ["MLFLOW_TRACKING_PASSWORD"] = token
-        dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
-        print(f"[OK] Connected to DagsHub: {repo_owner}/{repo_name}")
-        print(f"     MLflow URI: https://dagshub.com/{repo_owner}/{repo_name}.mlflow")
+        try:
+            dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
+            print(f"[OK] Connected to DagsHub: {repo_owner}/{repo_name}")
+            print(f"     MLflow URI: https://dagshub.com/{repo_owner}/{repo_name}.mlflow")
+        except Exception as e:
+            # DagsHub down / unreachable -> fall back to local MLflow tracking
+            local_uri = (PROJECT_ROOT / "mlruns").as_uri()
+            mlflow.set_tracking_uri(local_uri)
+            print(f"[WARN] DagsHub unreachable ({type(e).__name__}). "
+                  f"Falling back to LOCAL MLflow tracking.")
+            print(f"  Local tracking dir: {PROJECT_ROOT / 'mlruns'}")
+            print(f"  View with: mlflow ui --backend-store-uri \"{local_uri}\"")
     else:
         print("[WARN] MLflow enabled (local tracking only).")
 
@@ -128,19 +137,29 @@ def complete_with_defender(
     max_new_tokens:  int,
     temperature:     float,
     device:          torch.device,
+    min_new_tokens:  int = 1,
 ) -> list[int]:
-    """Run the frozen defender to produce a completion. Returns full ids (BOS stripped)."""
-    all_ids = [bos_id] + prefix_ids
-    ctx_len = defender.context_len
+    """Run the frozen defender to produce a completion. Returns full ids (BOS stripped).
+
+    Mirrors AttackPipeline._complete: EOS is masked until the defender has
+    added at least `min_new_tokens` new words, so the training environment
+    matches the evaluation environment exactly.
+    """
+    all_ids   = [bos_id] + prefix_ids
+    ctx_len   = defender.context_len
+    new_count = 0
     with torch.no_grad():
         for _ in range(max_new_tokens):
             context = torch.tensor([all_ids[-ctx_len:]], device=device)
             logits  = defender(context)[:, -1, :] / temperature
+            if new_count < min_new_tokens:
+                logits[0, eos_id] = float("-inf")
             probs   = torch.softmax(logits, dim=-1)
             next_id = torch.multinomial(probs, num_samples=1).item()
             if next_id == eos_id:
                 break
             all_ids.append(next_id)
+            new_count += 1
     return all_ids[1:]
 
 

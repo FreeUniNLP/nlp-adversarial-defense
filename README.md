@@ -86,18 +86,26 @@ Every word carries two semantic properties:
 START        -> SUBJECT_TERM
 SUBJECT_TERM -> SUBJECT VERB_TERM
 SUBJECT      -> NOUN | ADJ NOUN
-VERB_TERM    -> VERB | VERB OBJECT | VERB OBJECT VERB_TERM   (recursive)
+VERB_TERM    -> VERB | VERB OBJECT | VERB VERB_TERM | VERB OBJECT VERB_TERM
 OBJECT       -> NOUN | ADJ NOUN | ADJ ADJ NOUN
 ```
+
+`VERB_TERM` is recursive in two ways: a new verb term can follow either a
+complete object (`VERB OBJECT VERB_TERM`) or a bare verb (`VERB VERB_TERM`).
+This means verb chains like `MAN RUN FALL` are grammatical — there is no
+strict sentence end after a verb.
 
 **Semantic constraints** are layered on top of the skeleton:
 - Every verb requires its subject to have compatible tags and axis values
 - Transitive verbs require the object to satisfy additional tag and axis constraints
+- A bare verb (used without an object) must be intransitive — a transitive
+  verb must place its object before the next verb can start
 - Adjectives narrow down which nouns they can modify via tag overlap and axis bounds
 
 Example valid sentences:
 ```
 MAN RUN
+MAN RUN FALL
 FREE WOLF FALL
 DRONE BREAK CLOCK
 STRONG MAN CARRY SMALL BOOK FORGET LIE
@@ -325,7 +333,7 @@ A grammar-aware finite state machine that tracks exactly which words are valid a
 | `SUBJECT_START` | Beginning — expect adjective or noun |
 | `SUBJECT_AFTER_ADJ` | After subject adjective — expect noun only |
 | `AFTER_SUBJECT` | Subject placed — expect verb |
-| `AFTER_INTRANS_VERB` | Intransitive verb placed — can end, no further words |
+| `AFTER_INTRANS_VERB` | Intransitive verb placed — can end or chain another verb |
 | `OBJECT_START` | After transitive verb — expect adjective or noun |
 | `OBJECT_AFTER_ADJ1` | After 1st object adjective — expect adjective or noun |
 | `OBJECT_AFTER_ADJ2` | After 2nd object adjective — expect noun only |
@@ -344,7 +352,7 @@ print(tracker.sentence())                    # "MAN CARRY"
 print(tracker.can_end)                       # True
 ```
 
-Key constraint: after an intransitive verb the tracker returns no further valid words and `can_end=True`. Verb chaining is only allowed after a complete object has been placed.
+Key constraint: after a bare intransitive verb the tracker offers all verbs valid for the subject (`VERB_TERM -> VERB VERB_TERM`), plus `can_end=True`. After a transitive verb the object must be completed first — only then can the next verb chain start.
 
 ---
 

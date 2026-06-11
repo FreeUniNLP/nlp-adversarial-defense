@@ -8,8 +8,13 @@ Grammar (mirrors transition.json):
     START        → SUBJECT_TERM
     SUBJECT_TERM → SUBJECT VERB_TERM
     SUBJECT      → NOUN | ADJ NOUN
-    VERB_TERM    → VERB | VERB OBJECT | VERB OBJECT VERB_TERM   (recursive)
+    VERB_TERM    → VERB | VERB OBJECT | VERB VERB_TERM | VERB OBJECT VERB_TERM
     OBJECT       → NOUN | ADJ NOUN | ADJ ADJ NOUN
+
+Note on VERB VERB_TERM: a bare verb (used without object — must be
+intransitive) can be followed directly by another VERB_TERM, so verb
+chains like "MAN RUN FALL" are valid. A transitive verb still requires
+its object before the next verb can start.
 
 States follow the sentence left-to-right. At each state the tracker
 knows which surface words (not just POS types) are valid, because it
@@ -33,7 +38,7 @@ class GrammarState(Enum):
     SUBJECT_START       = auto()   # beginning: expect ADJ or NOUN (subject slot)
     SUBJECT_AFTER_ADJ   = auto()   # after subject ADJ: expect NOUN only
     AFTER_SUBJECT       = auto()   # subject complete: expect VERB
-    AFTER_INTRANS_VERB  = auto()   # after intransitive VERB: can end or add another VERB
+    AFTER_INTRANS_VERB  = auto()   # after intransitive VERB: can end or chain another VERB
     OBJECT_START        = auto()   # after transitive VERB: expect ADJ or NOUN (object slot)
     OBJECT_AFTER_ADJ1   = auto()   # after 1st object ADJ: expect ADJ or NOUN
     OBJECT_AFTER_ADJ2   = auto()   # after 2nd object ADJ: expect NOUN only
@@ -127,10 +132,11 @@ class CFGStateTracker:
             return words, True    # "MAN" alone is a valid prefix
 
         if s == GrammarState.AFTER_INTRANS_VERB:
-            # Grammar: VERB_TERM → VERB OBJECT VERB_TERM (recursive)
-            # A new VERB_TERM can only follow after a complete OBJECT,
-            # not after a bare intransitive VERB. Must end here.
-            return [], True
+            # Grammar: VERB_TERM → VERB VERB_TERM
+            # A bare intransitive verb can be followed by another VERB_TERM,
+            # so any verb valid for the subject may chain here — or we end.
+            words = self._valid_verbs_for_subject()
+            return words, True
 
         if s == GrammarState.OBJECT_START:
             words = self._valid_object_starts()
@@ -184,6 +190,7 @@ class CFGStateTracker:
             self.state = GrammarState.AFTER_SUBJECT
 
         elif s in (GrammarState.AFTER_SUBJECT,
+                   GrammarState.AFTER_INTRANS_VERB,
                    GrammarState.AFTER_OBJECT):
             verb = self._verb_map[word]
             self.current_verb = verb

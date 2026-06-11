@@ -1,0 +1,7 @@
+artifact_location: file:///D:/NLP/final/nlp-adversarial-defense/mlruns/624746418337589421
+creation_time: 1781187920299
+experiment_id: '624746418337589421'
+last_update_time: 1781187920299
+lifecycle_stage: active
+name: AttackBenchmark
+workspace: default
