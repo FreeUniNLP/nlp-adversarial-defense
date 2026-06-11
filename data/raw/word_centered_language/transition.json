@@ -19,6 +19,7 @@
     "VERB_TERM": [
       ["VERB"],
       ["VERB", "OBJECT"],
+      ["VERB", "VERB_TERM"],
       ["VERB", "OBJECT", "VERB_TERM"]
     ],
 

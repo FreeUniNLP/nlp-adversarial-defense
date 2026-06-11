@@ -93,9 +93,18 @@ def setup_mlflow(use_mlflow: bool) -> bool:
     
     if repo_owner and repo_name:
         if HAS_DAGSHUB:
-            dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
-            print(f"[OK] Connected to DagsHub: {repo_owner}/{repo_name}")
-            print("  Experiments will be logged to DagsHub.")
+            try:
+                dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
+                print(f"[OK] Connected to DagsHub: {repo_owner}/{repo_name}")
+                print("  Experiments will be logged to DagsHub.")
+            except Exception as e:
+                # DagsHub down / unreachable -> fall back to local MLflow tracking
+                local_uri = (PROJECT_ROOT / "mlruns").as_uri()
+                mlflow.set_tracking_uri(local_uri)
+                print(f"[WARN] DagsHub unreachable ({type(e).__name__}). "
+                      f"Falling back to LOCAL MLflow tracking.")
+                print(f"  Local tracking dir: {PROJECT_ROOT / 'mlruns'}")
+                print(f"  View with: mlflow ui --backend-store-uri \"{local_uri}\"")
         else:
             print("[WARN] DagsHub credentials found but 'dagshub' package not installed.")
             print("  Install with: pip install dagshub")

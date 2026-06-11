@@ -143,8 +143,9 @@ if intrans_choice:
           tracker.state == GrammarState.AFTER_INTRANS_VERB)
     check("can_end after intrans verb", tracker.can_end)
     next_words, can_end = tracker.valid_next_words()
-    check("After intrans: no further words allowed (cannot chain verb without object)",
-          len(next_words) == 0)
+    # Grammar rule VERB_TERM -> VERB VERB_TERM: verbs may chain after a bare verb
+    check("After intrans: verbs allowed to chain (VERB VERB_TERM rule)",
+          len(next_words) > 0 and set(next_words).issubset(verb_set))
 else:
     print("  [SKIP]  No intransitive verb valid for MAN")
 
