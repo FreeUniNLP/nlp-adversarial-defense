@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/NLP/final/nlp-adversarial-defense/mlruns/624746418337589421/45803c7e25c241dd83f1fa8ac8423088/artifacts
+end_time: 1781187927094
+entry_point_name: ''
+experiment_id: '624746418337589421'
+lifecycle_stage: active
+run_id: 45803c7e25c241dd83f1fa8ac8423088
+run_name: wise-doe-47
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781187925843
+status: 3
+tags: []
+user_id: kende23

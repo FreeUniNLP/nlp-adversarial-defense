@@ -86,8 +86,16 @@ def setup_mlflow(use_mlflow: bool) -> bool:
             os.environ["DAGSHUB_USER_TOKEN"] = token
             os.environ["MLFLOW_TRACKING_USERNAME"] = repo_owner
             os.environ["MLFLOW_TRACKING_PASSWORD"] = token
-        dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
-        print(f"[OK] Connected to DagsHub: {repo_owner}/{repo_name}")
+        try:
+            dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
+            print(f"[OK] Connected to DagsHub: {repo_owner}/{repo_name}")
+        except Exception as e:
+            # DagsHub down / unreachable -> fall back to local MLflow tracking
+            local_uri = (PROJECT_ROOT / "mlruns").as_uri()
+            mlflow.set_tracking_uri(local_uri)
+            print(f"[WARN] DagsHub unreachable ({type(e).__name__}). "
+                  f"Falling back to LOCAL MLflow tracking.")
+            print(f"  Local tracking dir: {PROJECT_ROOT / 'mlruns'}")
     else:
         print("[WARN] MLflow enabled (local tracking only).")
     mlflow.set_experiment("AttackBenchmark")
@@ -108,6 +116,7 @@ class AttackPipeline:
         self,
         max_prefix_tokens: int   = 6,
         max_completion_tokens: int = 15,
+        min_completion_tokens: int = 1,
         attacker_temperature: float = 1.0,
         defender_temperature: float = 0.8,
         device: str = "cpu",
@@ -116,6 +125,7 @@ class AttackPipeline:
     ):
         self.max_prefix_tokens     = max_prefix_tokens
         self.max_completion_tokens = max_completion_tokens
+        self.min_completion_tokens = min_completion_tokens
         self.attacker_temperature  = attacker_temperature
         self.defender_temperature  = defender_temperature
         self.device                = device
@@ -176,8 +186,13 @@ class AttackPipeline:
         """
         Feed prefix_ids into MiniGPT and generate a completion.
         Returns all_ids (prefix + generated), BOS excluded.
+
+        The defender must add at least `min_completion_tokens` new words:
+        EOS is masked out until that minimum is reached, so the completion
+        is never just the unchanged prefix.
         """
-        all_ids = [self.tokenizer.bos_id] + prefix_ids
+        all_ids   = [self.tokenizer.bos_id] + prefix_ids
+        new_count = 0
 
         with torch.no_grad():
             for _ in range(self.max_completion_tokens):
@@ -185,6 +200,11 @@ class AttackPipeline:
                     [all_ids[-self.defender.context_len:]], device=self.device
                 )
                 logits  = self.defender(context)[:, -1, :] / self.defender_temperature
+
+                # Forbid EOS until the defender has added the minimum new words
+                if new_count < self.min_completion_tokens:
+                    logits[0, self.tokenizer.eos_id] = float("-inf")
+
                 probs   = torch.softmax(logits, dim=-1)
                 next_id = torch.multinomial(probs, num_samples=1).item()
 
@@ -192,6 +212,7 @@ class AttackPipeline:
                     break
 
                 all_ids.append(next_id)
+                new_count += 1
 
         return all_ids[1:]  # strip BOS
 
@@ -358,6 +379,7 @@ def parse_args():
     p.add_argument("--n",             type=int,   default=100,   help="Number of attack iterations (default: 5)")
     p.add_argument("--max-prefix",    type=int,   default=6,   dest="max_prefix",    help="Max attacker prefix tokens (default: 6)")
     p.add_argument("--max-completion",type=int,   default=15,  dest="max_completion",help="Max MiniGPT completion tokens (default: 15)")
+    p.add_argument("--min-completion",type=int,   default=1,   dest="min_completion",help="Min new words the defender must add (default: 1)")
     p.add_argument("--atk-temp",      type=float, default=1.0, dest="atk_temp",      help="Attacker temperature (default: 1.0)")
     p.add_argument("--verbose",       action="store_true",                           help="Show full reward breakdown per sentence")
     p.add_argument("--def-temp",      type=float, default=0.8, dest="def_temp",      help="Defender temperature (default: 0.8)")
@@ -372,6 +394,7 @@ if __name__ == "__main__":
     pipeline = AttackPipeline(
         max_prefix_tokens     = args.max_prefix,
         max_completion_tokens = args.max_completion,
+        min_completion_tokens = args.min_completion,
         attacker_temperature  = args.atk_temp,
         defender_temperature  = args.def_temp,
         verbose               = args.verbose,

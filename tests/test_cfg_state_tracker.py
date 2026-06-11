@@ -103,8 +103,9 @@ class TestCFGStateTracker(unittest.TestCase):
         self.tracker.step(chosen)
         self.assertTrue(self.tracker.can_end)
 
-    def test_after_intrans_no_further_words(self):
-        """No verb chaining without an object in between."""
+    def test_after_intrans_verbs_can_chain(self):
+        """Grammar rule VERB_TERM -> VERB VERB_TERM: another verb may follow
+        a bare intransitive verb (e.g. MAN RUN FALL)."""
         self.tracker.step("MAN")
         valid_verbs, _ = self.tracker.valid_next_words()
         intrans = {v.word for v in self.verbs if v.verb_argument.verb_to_object_constraint is None}
@@ -112,8 +113,30 @@ class TestCFGStateTracker(unittest.TestCase):
         if chosen is None:
             self.skipTest("No intransitive verb valid for MAN")
         self.tracker.step(chosen)
-        next_words, _ = self.tracker.valid_next_words()
-        self.assertEqual(next_words, [])
+        next_words, can_end = self.tracker.valid_next_words()
+        verb_words = {v.word for v in self.verbs}
+        self.assertTrue(can_end)
+        self.assertTrue(next_words, "Verbs should be allowed to chain after intransitive verb")
+        self.assertTrue(set(next_words).issubset(verb_words),
+                        f"Only verbs may chain, found: {set(next_words) - verb_words}")
+
+    def test_chain_step_advances_state(self):
+        """Stepping a chained verb after an intransitive verb must succeed."""
+        self.tracker.step("MAN")
+        valid_verbs, _ = self.tracker.valid_next_words()
+        intrans = {v.word for v in self.verbs if v.verb_argument.verb_to_object_constraint is None}
+        chosen = next((w for w in valid_verbs if w in intrans), None)
+        if chosen is None:
+            self.skipTest("No intransitive verb valid for MAN")
+        self.tracker.step(chosen)
+        chain_verbs, _ = self.tracker.valid_next_words()
+        chain_intrans = next((w for w in chain_verbs if w in intrans), None)
+        if chain_intrans is None:
+            self.skipTest("No intransitive verb available to chain")
+        ok = self.tracker.step(chain_intrans)
+        self.assertTrue(ok)
+        self.assertEqual(self.tracker.state, GrammarState.AFTER_INTRANS_VERB)
+        self.assertTrue(self.tracker.can_end)
 
     # --- transitive verb ---
 
