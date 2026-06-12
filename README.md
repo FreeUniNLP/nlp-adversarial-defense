@@ -523,11 +523,30 @@ pipeline = AttackPipeline(
 pipeline.run(n=100)
 ```
 
-**Results on 100 iterations with untrained attacker:**
-```
-VALID   : 60/100  (60%)
-INVALID : 40/100  (40%)
-AVG REWARD : 0.64
+### Before vs after REINFORCE training
+
+The attacker policy was trained with REINFORCE (20,000 episodes, EMA baseline, entropy bonus `0.05`) against the frozen defender (`minigpt_corpus10000.pt`, loss 2.80). Both benchmarks use the **same defender, same temperatures, same `min_completion_tokens=1` rule** (the defender must add at least one new word — it cannot just echo the prefix), and **both at `n=100,000`** for a tight, apples-to-apples comparison.
+
+| Metric | Before training (untrained attacker) | After training (`attacker_best.pt`) | Δ |
+|---|---|---|---|
+| VALID completions | 44,898 / 100,000 (**44.9%**) | 5,295 / 100,000 (**5.3%**) | **−39.6 pts** |
+| INVALID completions | 55,102 / 100,000 (**55.1%**) | 94,705 / 100,000 (**94.7%**) | **+39.6 pts** |
+| Avg reward | **0.8143** | **1.3122** | **+0.50 (≈1.6×)** |
+
+**What changed.** An untrained attacker emits roughly uniform CFG-legal prefixes; the defender still produces semantically valid completions ~45% of the time. After 20k REINFORCE episodes, the attacker concentrates probability on short prefix shapes (`FAMOUS HOME`, `CONNECTED HOME`, etc.) that consistently push the defender into a verb that violates semantic constraints on the subject. The grammar-failure reward (`+1.0 × w_grammar`) now fires on ~95% of episodes, and the chosen prefix shape also maximises noun/verb/adjective tag distance — lifting `avg_reward` from 0.81 to 1.31.
+
+Both runs are logged to DagsHub MLflow under the `AttackBenchmark` experiment for direct comparison.
+
+**Note on diversity.** The trained policy concentrates on a small set of high-reward attack templates — a known REINFORCE mode-collapse signature that the `0.05` entropy bonus mitigates but doesn't eliminate. For more diverse attacks, raise the entropy coefficient or add a novelty bonus to the reward.
+
+**Reproduce:**
+
+```powershell
+# Before training (untrained attacker baseline)
+python scripts/attack_and_complete.py --n 100000 --mlflow
+
+# After training
+python scripts/attack_and_complete.py --n 100000 --attacker-ckpt data/models/attacker_best.pt --mlflow
 ```
 
 ---
