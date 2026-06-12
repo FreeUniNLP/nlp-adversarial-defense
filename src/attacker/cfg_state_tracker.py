@@ -75,7 +75,62 @@ class CFGStateTracker:
         self._verb_map = {v.word: v for v in verbs}
         self._adj_map  = {a.word: a for a in adjectives}
 
+        self._precompute_viability()
         self.reset()
+
+    # ------------------------------------------------------------------ #
+    #  Winnability precomputation                                          #
+    # ------------------------------------------------------------------ #
+
+    def _precompute_viability(self) -> None:
+        """Precompute which words keep the sentence completable.
+
+        Guarantees that every prefix the tracker allows (including every
+        point where can_end=True) admits at least one valid full-sentence
+        completion. Without this, the attacker can emit dead-end prefixes
+        like a bare subject that no verb is compatible with — a prefix the
+        defender can never complete validly.
+
+          * safe verb     — intransitive, or has at least one valid object
+          * viable noun   — has at least one safe verb compatible with it
+                            (as subject, given its adjectives)
+          * viable adj    — leads to at least one viable noun
+        """
+        # --- safe verbs ---
+        self._safe_verbs: list[VerbEntry] = []
+        for v in self.verbs:
+            c = v.verb_argument.verb_to_object_constraint
+            if c is None:
+                self._safe_verbs.append(v)
+                continue
+            has_bare_obj = any(self._noun_ok(n, c) for n in self.nouns)
+            if has_bare_obj or any(
+                self._noun_ok(n, a.adjective_to_noun_constraint)
+                and self._noun_ok(n, c, [a])
+                for a in self.adjectives for n in self.nouns
+            ):
+                self._safe_verbs.append(v)
+
+        def has_safe_verb(noun: NounEntry, adjs: list[AdjectiveEntry]) -> bool:
+            return any(
+                self._noun_ok(noun, v.verb_argument.verb_to_subject_constraint, adjs)
+                for v in self._safe_verbs
+            )
+
+        # --- viable subject nouns (bare, and per leading adjective) ---
+        self._viable_bare_nouns: list[str] = [
+            n.word for n in self.nouns if has_safe_verb(n, [])
+        ]
+        self._viable_nouns_after_adj: dict[str, list[str]] = {}
+        for a in self.adjectives:
+            ns = [
+                n.word for n in self.nouns
+                if self._noun_ok(n, a.adjective_to_noun_constraint)
+                and has_safe_verb(n, [a])
+            ]
+            if ns:
+                self._viable_nouns_after_adj[a.word] = ns
+        self._viable_subject_adjs: list[str] = list(self._viable_nouns_after_adj.keys())
 
     # ------------------------------------------------------------------ #
     #  Public API                                                          #
@@ -112,19 +167,16 @@ class CFGStateTracker:
         s = self.state
 
         if s == GrammarState.SUBJECT_START:
-            words = (
-                [a.word for a in self.adjectives]
-                + [n.word for n in self.nouns]
-            )
+            # Only viable words: every offered subject keeps the sentence
+            # completable (has at least one safe verb available).
+            words = self._viable_subject_adjs + self._viable_bare_nouns
             return words, False   # can't end before writing anything
 
         if s == GrammarState.SUBJECT_AFTER_ADJ:
-            # Must place a NOUN compatible with the subject adjective
+            # Must place a NOUN compatible with the subject adjective AND
+            # viable (some safe verb accepts adj+noun as subject).
             adj = self.subject_adjs[-1]
-            words = [
-                n.word for n in self.nouns
-                if self._noun_ok(n, adj.adjective_to_noun_constraint)
-            ]
+            words = list(self._viable_nouns_after_adj.get(adj.word, []))
             return words, True    # "BIG" alone is a valid prefix
 
         if s == GrammarState.AFTER_SUBJECT:
@@ -225,9 +277,14 @@ class CFGStateTracker:
     # ------------------------------------------------------------------ #
 
     def _valid_verbs_for_subject(self) -> list[str]:
-        """Verbs whose subject constraint is satisfied by the current subject."""
+        """Safe verbs whose subject constraint is satisfied by the current subject.
+
+        Restricted to safe verbs (intransitive or with at least one valid
+        object) so a prefix ending right after a transitive verb is always
+        completable.
+        """
         return [
-            v.word for v in self.verbs
+            v.word for v in self._safe_verbs
             if self._noun_ok(
                 self.subject_noun,
                 v.verb_argument.verb_to_subject_constraint,

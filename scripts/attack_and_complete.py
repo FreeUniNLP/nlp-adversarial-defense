@@ -122,6 +122,7 @@ class AttackPipeline:
         device: str = "cpu",
         verbose: bool = False,
         attacker_ckpt: str | None = None,
+        defender_ckpt: str | None = None,
     ):
         self.max_prefix_tokens     = max_prefix_tokens
         self.max_completion_tokens = max_completion_tokens
@@ -146,7 +147,9 @@ class AttackPipeline:
         self.tokenizer = WordTokenizer.from_corpus(CORPUS_PATH)
 
         print("Loading MiniGPT (defender)...")
-        ckpt = torch.load(CKPT_PATH, map_location=device, weights_only=False)
+        defender_path = Path(defender_ckpt) if defender_ckpt else CKPT_PATH
+        print(f"  checkpoint: {defender_path}")
+        ckpt = torch.load(defender_path, map_location=device, weights_only=False)
         self.defender = MiniGPT(
             vocab_size=self.tokenizer.vocab_size,
             pad_id=self.tokenizer.pad_id,
@@ -154,7 +157,11 @@ class AttackPipeline:
         self.defender.load_state_dict(ckpt["model_state"])
         self.defender.to(device)
         self.defender.eval()
-        print(f"  Loaded epoch {ckpt['epoch']}, loss {ckpt['loss']:.4f}")
+        if "epoch" in ckpt:
+            print(f"  Loaded epoch {ckpt['epoch']}, loss {ckpt['loss']:.4f}")
+        else:
+            print(f"  Loaded RL checkpoint: episode {ckpt.get('episode', '?')}, "
+                  f"def_reward {ckpt.get('avg_defender_reward', float('nan')):.4f}")
 
         self.attacker = AttackerTransformer(
             vocab_size=self.tokenizer.vocab_size,
@@ -384,6 +391,7 @@ def parse_args():
     p.add_argument("--verbose",       action="store_true",                           help="Show full reward breakdown per sentence")
     p.add_argument("--def-temp",      type=float, default=0.8, dest="def_temp",      help="Defender temperature (default: 0.8)")
     p.add_argument("--attacker-ckpt", type=str,   default=None, dest="attacker_ckpt", help="Path to attacker checkpoint (default: untrained attacker)")
+    p.add_argument("--defender-ckpt", type=str,   default=None, dest="defender_ckpt", help="Path to defender checkpoint (default: minigpt_corpus10000.pt)")
     p.add_argument("--mlflow",        action="store_true",                            help="Log benchmark to MLflow / DagsHub")
     return p.parse_args()
 
@@ -399,5 +407,6 @@ if __name__ == "__main__":
         defender_temperature  = args.def_temp,
         verbose               = args.verbose,
         attacker_ckpt         = args.attacker_ckpt,
+        defender_ckpt         = args.defender_ckpt,
     )
     pipeline.run(n=args.n, use_mlflow=use_tracking, attacker_ckpt_path=args.attacker_ckpt)
