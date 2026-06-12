@@ -122,6 +122,7 @@ class AttackPipeline:
         device: str = "cpu",
         verbose: bool = False,
         attacker_ckpt: str | None = None,
+        defender_ckpt: str | None = None,
     ):
         self.max_prefix_tokens     = max_prefix_tokens
         self.max_completion_tokens = max_completion_tokens
@@ -145,8 +146,14 @@ class AttackPipeline:
         print("Loading tokenizer...")
         self.tokenizer = WordTokenizer.from_corpus(CORPUS_PATH)
 
-        print("Loading MiniGPT (defender)...")
-        ckpt = torch.load(CKPT_PATH, map_location=device, weights_only=False)
+        defender_path = Path(defender_ckpt) if defender_ckpt else CKPT_PATH
+        print(f"Loading MiniGPT (defender) from {defender_path.name}...")
+        if not defender_path.exists():
+            raise FileNotFoundError(
+                f"Defender checkpoint not found: {defender_path}\n"
+                f"Train one first with: python scripts/train/train_model.py"
+            )
+        ckpt = torch.load(defender_path, map_location=device, weights_only=False)
         self.defender = MiniGPT(
             vocab_size=self.tokenizer.vocab_size,
             pad_id=self.tokenizer.pad_id,
@@ -154,7 +161,16 @@ class AttackPipeline:
         self.defender.load_state_dict(ckpt["model_state"])
         self.defender.to(device)
         self.defender.eval()
-        print(f"  Loaded epoch {ckpt['epoch']}, loss {ckpt['loss']:.4f}")
+        self.defender_ckpt_path = defender_path
+        epoch = ckpt.get("epoch", "?")
+        loss  = ckpt.get("loss")
+        avg_rw = ckpt.get("avg_reward")
+        if loss is not None:
+            print(f"  Loaded epoch {epoch}, loss {loss:.4f}")
+        elif avg_rw is not None:
+            print(f"  Loaded episode {ckpt.get('episode', '?')}, avg_reward {avg_rw:.4f}")
+        else:
+            print(f"  Loaded checkpoint keys: {list(ckpt.keys())}")
 
         self.attacker = AttackerTransformer(
             vocab_size=self.tokenizer.vocab_size,
@@ -258,12 +274,20 @@ class AttackPipeline:
             "reward":        rf_output,
         }
 
-    def run(self, n: int = 5, use_mlflow: bool = False, attacker_ckpt_path: str | None = None) -> None:
+    def run(
+        self,
+        n: int = 5,
+        use_mlflow: bool = False,
+        attacker_ckpt_path: str | None = None,
+        run_name: str | None = None,
+        quiet: bool = False,
+        log_every: int = 50,
+    ) -> None:
         """Run n attack iterations and print a summary table."""
         import csv
 
         if use_mlflow:
-            mlflow.start_run()
+            mlflow.start_run(run_name=run_name)
             mlflow.log_params({
                 "n":                     n,
                 "max_prefix_tokens":     self.max_prefix_tokens,
@@ -271,7 +295,8 @@ class AttackPipeline:
                 "attacker_temperature":  self.attacker_temperature,
                 "defender_temperature":  self.defender_temperature,
                 "attacker_ckpt":         attacker_ckpt_path or "untrained",
-                "defender_ckpt":         str(CKPT_PATH.name),
+                "defender_ckpt":         str(self.defender_ckpt_path),
+                "run_name":              run_name or "default",
             })
 
         print("=" * 70)
@@ -290,7 +315,8 @@ class AttackPipeline:
 
         logs_dir = PROJECT_ROOT / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
-        csv_path = logs_dir / "benchmark_iterations.csv"
+        csv_stem = run_name or "benchmark_iterations"
+        csv_path = logs_dir / f"{csv_stem}.csv"
         csv_file = csv_path.open("w", newline="", encoding="utf-8")
         csv_writer = csv.writer(csv_file)
         csv_writer.writerow([
@@ -392,6 +418,10 @@ def parse_args():
     p.add_argument("--verbose",       action="store_true",                           help="Show full reward breakdown per sentence")
     p.add_argument("--def-temp",      type=float, default=0.8, dest="def_temp",      help="Defender temperature (default: 0.8)")
     p.add_argument("--attacker-ckpt", type=str,   default=None, dest="attacker_ckpt", help="Path to attacker checkpoint (default: untrained attacker)")
+    p.add_argument("--defender-ckpt", type=str,   default=None, dest="defender_ckpt", help="Path to defender checkpoint (default: minigpt_corpus10000.pt)")
+    p.add_argument("--run-name",      type=str,   default=None, dest="run_name",      help="MLflow run name and CSV log stem (default: benchmark_iterations)")
+    p.add_argument("--quiet",         action="store_true",                           help="Suppress per-iteration detail (recommended for large n)")
+    p.add_argument("--log-every",     type=int,   default=50,  dest="log_every",     help="Progress interval when --quiet (default: 50)")
     p.add_argument("--mlflow",        action="store_true",                            help="Log benchmark to MLflow / DagsHub")
     return p.parse_args()
 
@@ -407,5 +437,13 @@ if __name__ == "__main__":
         defender_temperature  = args.def_temp,
         verbose               = args.verbose,
         attacker_ckpt         = args.attacker_ckpt,
+        defender_ckpt         = args.defender_ckpt,
     )
-    pipeline.run(n=args.n, use_mlflow=use_tracking, attacker_ckpt_path=args.attacker_ckpt)
+    pipeline.run(
+        n=args.n,
+        use_mlflow=use_tracking,
+        attacker_ckpt_path=args.attacker_ckpt,
+        run_name=args.run_name,
+        quiet=args.quiet,
+        log_every=args.log_every,
+    )

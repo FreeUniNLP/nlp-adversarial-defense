@@ -127,3 +127,54 @@ class MiniGPT(nn.Module):
                 break
             ids.append(next_id)
         return ids[1:]  # strip BOS
+
+    def complete_with_log_probs(
+        self,
+        prefix_ids:     list[int],
+        bos_id:         int,
+        eos_id:         int,
+        max_new_tokens: int   = 15,
+        temperature:    float = 1.0,
+        device:         str   = "cpu",
+        min_new_tokens: int   = 1,
+    ) -> tuple[list[int], torch.Tensor]:
+        """
+        Complete an attacker prefix and return per-step log-probabilities.
+
+        Returns
+        -------
+        full_ids  : complete token sequence (BOS stripped), prefix + suffix
+        log_probs : shape (T_suffix,) log P(token | context) for suffix tokens
+        """
+        self.train()
+        all_ids:   list[int]          = [bos_id] + list(prefix_ids)
+        log_probs: list[torch.Tensor] = []
+        new_count = 0
+
+        for _ in range(max_new_tokens):
+            context = torch.tensor([all_ids[-self.context_len:]], device=device)
+            logits  = self(context)[:, -1, :] / temperature
+
+            if new_count < min_new_tokens:
+                logits = logits.clone()
+                logits[0, eos_id] = float("-inf")
+
+            log_prob_dist = F.log_softmax(logits, dim=-1)
+
+            with torch.no_grad():
+                probs   = torch.exp(log_prob_dist)
+                next_id = torch.multinomial(probs, num_samples=1).item()
+
+            if next_id == eos_id:
+                break
+
+            log_probs.append(log_prob_dist[0, next_id])
+            all_ids.append(next_id)
+            new_count += 1
+
+        if log_probs:
+            log_probs_tensor = torch.stack(log_probs)
+        else:
+            log_probs_tensor = torch.zeros(0, device=device)
+
+        return all_ids[1:], log_probs_tensor
