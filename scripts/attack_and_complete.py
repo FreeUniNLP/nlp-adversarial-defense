@@ -325,6 +325,11 @@ class AttackPipeline:
             "adjective_tag_dist", "axis_distance", "error",
         ])
 
+        log_stride = max(1, n // 1000)   # cap MLflow + console writes at ~1000 across the run
+        window_reward  = 0.0
+        window_invalid = 0
+        quiet = n > 1000
+
         for i in range(1, n + 1):
             r  = self.run_once()
             rw = r["reward"]
@@ -351,30 +356,27 @@ class AttackPipeline:
                 r["error"],
             ])
 
-            if use_mlflow:
-                mlflow.log_metric("iter_reward", rw.reward, step=i)
-                mlflow.log_metric("iter_invalid", 0 if r["is_valid"] else 1, step=i)
+            if quiet and ((i % log_stride == 0) or (i == n)):
+                running_inv_rate = invalid_count / i
+                running_avg_rw   = total_reward / i
+                print(f"  [{i}/{n}]  invalid_rate={running_inv_rate:.3f}  "
+                      f"avg_reward={running_avg_rw:.4f}")
 
-            if not quiet or i == 1 or i == n or i % log_every == 0:
-                print(f"\n  [{i:4d}] {verdict}  |  reward={rw.reward:.4f}")
-                if not quiet:
-                    print(f"       Prefix    : {r['prefix']}")
-                    print(f"       Full      : {r['full_sentence']}")
-                    if r["error"]:
-                        print(f"       Reason    : {r['error']}")
-                    print(f"       Reward    : grammar={rw.grammar_reward:.2f}"
-                          f"  noun_tag={rw.distances.noun_tag_dist:.3f}"
-                          f"  verb_tag={rw.distances.verb_tag_dist:.3f}"
-                          f"  adj_tag={rw.distances.adjective_tag_dist:.3f}"
-                          f"  axis={rw.distances.axis_distance:.3f}"
-                          f"  total={rw.reward:.4f}")
-                    if self.verbose:
-                        print()
-                        print(rw.summary())
-                elif i % log_every == 0:
-                    pct_so_far = 100 * valid_count / i
-                    print(f"       progress: valid={valid_count}/{i} ({pct_so_far:.0f}%)  "
-                          f"avg_reward={total_reward/i:.4f}")
+            if not quiet:
+                print(f"\n  [{i:2d}] {verdict}  |  reward={rw.reward:.4f}")
+                print(f"       Prefix    : {r['prefix']}")
+                print(f"       Full      : {r['full_sentence']}")
+                if r["error"]:
+                    print(f"       Reason    : {r['error']}")
+                print(f"       Reward    : grammar={rw.grammar_reward:.2f}"
+                      f"  noun_tag={rw.distances.noun_tag_dist:.3f}"
+                      f"  verb_tag={rw.distances.verb_tag_dist:.3f}"
+                      f"  adj_tag={rw.distances.adjective_tag_dist:.3f}"
+                      f"  axis={rw.distances.axis_distance:.3f}"
+                      f"  total={rw.reward:.4f}")
+                if self.verbose:
+                    print()
+                    print(rw.summary())
 
         csv_file.close()
 
