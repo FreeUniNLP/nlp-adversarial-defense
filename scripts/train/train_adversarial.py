@@ -254,6 +254,24 @@ class AdversarialCoTrainer:
         self.tok = WordTokenizer.from_corpus(corpus_path)
         logger.info(f"Vocab size: {self.tok.vocab_size}")
 
+        # --- Supervised corpus (anchors the defender to natural language stats) ---
+        # Real sentences carry the full vocabulary distribution. Mixing a supervised
+        # next-token loss into the defender's RL update keeps it from collapsing onto
+        # a few grammar-safe verbs (FALL/BURN).
+        self.corpus_samples: list[list[int]] = []
+        if args.sft_coef > 0:
+            with corpus_path.open(encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    ids = self.tok.encode(line, add_special=True)
+                    if len(ids) >= 2:
+                        self.corpus_samples.append(ids)
+            logger.info(f"Loaded {len(self.corpus_samples)} corpus sentences for SFT mixing "
+                        f"(sft_coef={args.sft_coef}, sft_batch={args.sft_batch})")
+        self.sft_criterion = nn.CrossEntropyLoss(ignore_index=self.tok.pad_id)
+
         # --- Models ---
         self.attacker = self._load_attacker(args.attacker_ckpt)
         self.defender = self._load_defender(args.defender_ckpt)
@@ -308,6 +326,33 @@ class AdversarialCoTrainer:
                     del self.word_counts[old]
             self.word_window.append(w)
             self.word_counts[w] += 1
+
+    # ------------------------------------------------------------------ #
+    #  Supervised (SFT) anchor loss                                        #
+    # ------------------------------------------------------------------ #
+
+    def _sft_loss(self, batch_size: int) -> torch.Tensor:
+        """Next-token cross-entropy on a random batch of real corpus sentences.
+
+        Anchors the defender to the natural language distribution so RL cannot
+        collapse the output vocabulary. Returns a scalar loss with gradients.
+        """
+        ctx = self.defender.context_len
+        pad = self.tok.pad_id
+        batch = random.sample(self.corpus_samples, min(batch_size, len(self.corpus_samples)))
+
+        inputs, targets = [], []
+        for ids in batch:
+            ids = ids[: ctx + 1]
+            padded = ids + [pad] * (ctx + 1 - len(ids))
+            t = torch.tensor(padded, dtype=torch.long)
+            inputs.append(t[:-1])
+            targets.append(t[1:])
+
+        x = torch.stack(inputs).to(self.device)
+        y = torch.stack(targets).to(self.device)
+        logits = self.defender(x)
+        return self.sft_criterion(logits.reshape(-1, self.tok.vocab_size), y.reshape(-1))
 
     # ------------------------------------------------------------------ #
 
@@ -446,6 +491,10 @@ class AdversarialCoTrainer:
                 policy_loss = -(advantage * def_lp.sum())
                 entropy_term = def_ent.mean() if def_ent.numel() > 0 else torch.tensor(0.0, device=self.device)
                 loss = policy_loss - a.entropy_coef_defender * entropy_term
+                # Supervised anchor: mix in next-token loss on real corpus sentences
+                # so RL can't collapse the output vocabulary.
+                if a.sft_coef > 0 and self.corpus_samples:
+                    loss = loss + a.sft_coef * self._sft_loss(a.sft_batch)
 
                 self.opt_def.zero_grad()
                 loss.backward()
@@ -674,6 +723,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--diversity-window", type=int, default=2000, dest="diversity_window",
                    help="Rolling window (in words) used to estimate word frequencies for the "
                         "vocabulary-coverage penalty (default: 2000)")
+    p.add_argument("--sft-coef",       type=float, default=0.5,  dest="sft_coef",
+                   help="Supervised-mixing coefficient: weight of next-token corpus loss added "
+                        "to the defender's RL update. Anchors it to natural language and prevents "
+                        "vocabulary collapse (0=pure RL, default: 0.5)")
+    p.add_argument("--sft-batch",      type=int,   default=8,    dest="sft_batch",
+                   help="Number of corpus sentences per supervised mixing step (default: 8)")
     p.add_argument("--min-valid",       type=float, default=0.0,  dest="min_valid",
                    help="Early-stop attacker phase if rolling valid rate drops below this (default: 0 = disabled)")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha")
