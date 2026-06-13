@@ -90,8 +90,8 @@ WORDS_PATH      = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "wo
 TRANSITION_PATH = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "transition.json"
 DEFAULT_CORPUS  = PROJECT_ROOT / "data" / "raw" / "generated_texts" / "generated_corpus_10000.txt"
 
-DEFAULT_ATTACKER_CKPT = PROJECT_ROOT / "data" / "models" / "from_mlflow" / "attacker_best.pt"
-DEFAULT_DEFENDER_CKPT = PROJECT_ROOT / "data" / "models" / "defender_rl_best.pt"
+DEFAULT_ATTACKER_CKPT = PROJECT_ROOT / "data" / "models" / "from_mlflow" / "AttackerREINFORCE" / "enthused-sheep-51" / "attacker_best.pt"
+DEFAULT_DEFENDER_CKPT = PROJECT_ROOT / "data" / "models" / "from_mlflow" / "MiniGPT" / "nosy-chimp-161" / "minigpt_corpus10000.pt"
 
 OUTPUT_DIR = PROJECT_ROOT / "data" / "models" / "cotrain"
 
@@ -183,30 +183,30 @@ def defender_complete(
     entropies = []
     new_count = 0
 
-    ctx = torch.enable_grad() if with_grad else torch.no_grad()
-    with ctx:
-        for _ in range(max_new_tokens):
-            context = torch.tensor([all_ids[-defender.context_len:]], device=device)
-            logits  = defender(context)[:, -1, :] / temperature
+    for _ in range(max_new_tokens):
+        context = torch.tensor([all_ids[-defender.context_len:]], device=device)
 
+        with torch.set_grad_enabled(with_grad):
+            logits = defender(context)[:, -1, :] / temperature
             if new_count < min_new_tokens:
                 mask = torch.zeros_like(logits)
                 mask[0, eos_id] = float("-inf")
                 logits = logits + mask
-
             log_dist = F.log_softmax(logits, dim=-1)
-            with torch.no_grad():
-                next_id = torch.multinomial(log_dist.exp(), num_samples=1).item()
 
-            if with_grad:
-                log_probs.append(log_dist[0, next_id])
-                # True per-step entropy: H = -sum(p * log p)
-                entropies.append(-(log_dist.exp() * log_dist).sum())
+        # Sample from a clean detached probability tensor (avoids log→exp NaN path)
+        probs = F.softmax(logits.detach(), dim=-1)
+        next_id = torch.multinomial(probs, num_samples=1).item()
 
-            if next_id == eos_id:
-                break
-            all_ids.append(next_id)
-            new_count += 1
+        if with_grad:
+            log_probs.append(log_dist[0, next_id])
+            # True per-step entropy: H = -sum(p * log p); nan_to_num handles 0*-inf (masked EOS)
+            entropies.append(-(probs * log_dist).nan_to_num(0.0).sum())
+
+        if next_id == eos_id:
+            break
+        all_ids.append(next_id)
+        new_count += 1
 
     lp = torch.stack(log_probs) if log_probs else torch.zeros(0, device=device)
     ent = torch.stack(entropies) if entropies else torch.zeros(0, device=device)
@@ -600,6 +600,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")
     p.add_argument("--w-tag",          type=float, default=0.30, dest="w_tag")
     p.add_argument("--w-axis",         type=float, default=0.20, dest="w_axis")
+    p.add_argument("--min-valid",       type=float, default=0.0,  dest="min_valid",
+                   help="Early-stop attacker phase if rolling valid rate drops below this (default: 0 = disabled)")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha")
     p.add_argument("--grad-clip",      type=float, default=1.0,  dest="grad_clip")
     p.add_argument("--window",         type=int,   default=100)

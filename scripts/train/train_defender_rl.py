@@ -196,12 +196,12 @@ def complete_with_log_probs(
             logits = logits + mask
 
         log_dist = F.log_softmax(logits, dim=-1)
-        with torch.no_grad():
-            next_id = torch.multinomial(log_dist.exp(), num_samples=1).item()
+        probs = F.softmax(logits.detach(), dim=-1)
+        next_id = torch.multinomial(probs, num_samples=1).item()
 
         log_probs.append(log_dist[0, next_id])
-        # True per-step entropy: H = -sum(p * log p)
-        entropies.append(-(log_dist.exp() * log_dist).sum())
+        # True per-step entropy: H = -sum(p * log p); nan_to_num handles 0*-inf (masked EOS)
+        entropies.append(-(probs * log_dist).nan_to_num(0.0).sum())
 
         if next_id == eos_id:
             break
