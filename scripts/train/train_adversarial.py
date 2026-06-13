@@ -160,16 +160,27 @@ def sample_random_prefix(
     return ids, words
 
 
+def _no_repeat_ngram_block(logits: torch.Tensor, generated_ids: list[int], ngram_size: int) -> torch.Tensor:
+    if ngram_size <= 0 or len(generated_ids) < ngram_size - 1:
+        return logits
+    prefix = tuple(generated_ids[-(ngram_size - 1):])
+    for i in range(len(generated_ids) - ngram_size + 1):
+        if tuple(generated_ids[i: i + ngram_size - 1]) == prefix:
+            logits[0, generated_ids[i + ngram_size - 1]] = float("-inf")
+    return logits
+
+
 def defender_complete(
-    defender:            MiniGPT,
-    prefix_ids:          list[int],
-    bos_id:              int,
-    eos_id:              int,
-    max_new_tokens:      int,
-    temperature:         float,
-    device:              torch.device,
-    min_new_tokens:      int = 1,
-    repetition_penalty:  float = 1.0,
+    defender:             MiniGPT,
+    prefix_ids:           list[int],
+    bos_id:               int,
+    eos_id:               int,
+    max_new_tokens:       int,
+    temperature:          float,
+    device:               torch.device,
+    min_new_tokens:       int   = 1,
+    repetition_penalty:   float = 1.0,
+    no_repeat_ngram_size: int   = 0,
     with_grad:      bool = False,
 ) -> tuple[list[int], torch.Tensor, torch.Tensor]:
     """Defender completion. If with_grad, each sampled token's log-prob and
@@ -193,6 +204,7 @@ def defender_complete(
             if repetition_penalty != 1.0:
                 for tid in set(all_ids[1:]):
                     logits[0, tid] /= repetition_penalty
+            logits = _no_repeat_ngram_block(logits, all_ids[1:], no_repeat_ngram_size)
             if new_count < min_new_tokens:
                 mask = torch.zeros_like(logits)
                 mask[0, eos_id] = float("-inf")
@@ -333,6 +345,7 @@ class AdversarialCoTrainer:
             device=self.device, with_grad=(train_side == "defender"),
             min_new_tokens=a.min_new_tokens,
             repetition_penalty=a.repetition_penalty,
+            no_repeat_ngram_size=a.no_repeat_ngram_size,
         )
 
         full_words    = self.tok.decode(full_ids).split()
@@ -604,8 +617,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-completion", type=int,   default=20,   dest="max_completion")
     p.add_argument("--min-new-tokens",      type=int,   default=4,   dest="min_new_tokens",
                    help="Minimum new tokens the defender must generate before EOS is allowed (default: 4)")
-    p.add_argument("--repetition-penalty",  type=float, default=1.3, dest="repetition_penalty",
+    p.add_argument("--repetition-penalty",    type=float, default=1.3, dest="repetition_penalty",
                    help="Penalize repeated tokens in defender completion (1.0=off, default: 1.3)")
+    p.add_argument("--no-repeat-ngram-size",  type=int,   default=2,   dest="no_repeat_ngram_size",
+                   help="Hard-block repeated n-grams in defender completion (0=off, default: 2)")
     p.add_argument("--atk-temp",       type=float, default=1.0,  dest="atk_temp")
     p.add_argument("--def-temp",       type=float, default=0.8,  dest="def_temp")
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")

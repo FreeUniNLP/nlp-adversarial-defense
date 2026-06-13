@@ -73,15 +73,31 @@ def apply_repetition_penalty(logits: torch.Tensor, generated_ids: list[int], pen
     return logits
 
 
+def apply_no_repeat_ngram(logits: torch.Tensor, generated_ids: list[int], ngram_size: int) -> torch.Tensor:
+    """Block any token that would create a repeated n-gram (logit set to -inf).
+
+    With ngram_size=2: blocks a token T if (prev_token, T) has already appeared.
+    With ngram_size=3: blocks T if (prev-1, prev, T) has already appeared.
+    """
+    if ngram_size <= 0 or len(generated_ids) < ngram_size - 1:
+        return logits
+    prefix = tuple(generated_ids[-(ngram_size - 1):])
+    for i in range(len(generated_ids) - ngram_size + 1):
+        if tuple(generated_ids[i: i + ngram_size - 1]) == prefix:
+            logits[0, generated_ids[i + ngram_size - 1]] = float("-inf")
+    return logits
+
+
 def generate_sentence(
-    model:               MiniGPT,
-    tokenizer:           WordTokenizer,
-    device:              torch.device,
-    temperature:         float,
-    max_tokens:          int,
-    min_tokens:          int,
-    prefix_ids:          list[int] | None = None,
-    repetition_penalty:  float = 1.0,
+    model:                MiniGPT,
+    tokenizer:            WordTokenizer,
+    device:               torch.device,
+    temperature:          float,
+    max_tokens:           int,
+    min_tokens:           int,
+    prefix_ids:           list[int] | None = None,
+    repetition_penalty:   float = 1.0,
+    no_repeat_ngram_size: int   = 0,
 ) -> str:
     """Generate one sentence. If prefix_ids is None, starts from BOS only."""
     all_ids = [tokenizer.bos_id] + (prefix_ids or [])
@@ -92,6 +108,7 @@ def generate_sentence(
             context = torch.tensor([all_ids[-model.context_len:]], device=device)
             logits  = model(context)[:, -1, :] / temperature
             logits  = apply_repetition_penalty(logits, all_ids[1:], repetition_penalty)
+            logits  = apply_no_repeat_ngram(logits, all_ids[1:], no_repeat_ngram_size)
             if new_count < min_tokens:
                 logits[0, tokenizer.eos_id] = float("-inf")
             probs   = F.softmax(logits, dim=-1)
@@ -105,17 +122,18 @@ def generate_sentence(
 
 
 def generate_batch(
-    model:               MiniGPT,
-    tokenizer:           WordTokenizer,
-    validator:           CFGValidator,
-    tracker:             CFGStateTracker,
-    device:              torch.device,
-    n:                   int,
-    temperature:         float,
-    max_tokens:          int,
-    min_tokens:          int,
-    use_prefix:          bool,
-    repetition_penalty:  float = 1.0,
+    model:                MiniGPT,
+    tokenizer:            WordTokenizer,
+    validator:            CFGValidator,
+    tracker:              CFGStateTracker,
+    device:               torch.device,
+    n:                    int,
+    temperature:          float,
+    max_tokens:           int,
+    min_tokens:           int,
+    use_prefix:           bool,
+    repetition_penalty:   float = 1.0,
+    no_repeat_ngram_size: int   = 0,
 ) -> list[dict]:
     """Generate n sentences and return list of result dicts."""
     results = []
@@ -140,7 +158,8 @@ def generate_batch(
 
         sent = generate_sentence(
             model, tokenizer, device, temperature, max_tokens, min_tokens, prefix_ids,
-            repetition_penalty=repetition_penalty)
+            repetition_penalty=repetition_penalty,
+            no_repeat_ngram_size=no_repeat_ngram_size)
         res  = validator.validate(sent)
         words = sent.split()
         results.append({
@@ -279,7 +298,8 @@ def main() -> None:
     baseline_results = generate_batch(
         baseline, tokenizer, validator, tracker, device,
         args.n, args.temperature, args.max_tokens, args.min_tokens, args.use_prefix,
-        repetition_penalty=args.repetition_penalty)
+        repetition_penalty=args.repetition_penalty,
+        no_repeat_ngram_size=args.no_repeat_ngram_size)
 
     random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -287,7 +307,8 @@ def main() -> None:
     trained_results = generate_batch(
         trained, tokenizer, validator, tracker, device,
         args.n, args.temperature, args.max_tokens, args.min_tokens, args.use_prefix,
-        repetition_penalty=args.repetition_penalty)
+        repetition_penalty=args.repetition_penalty,
+        no_repeat_ngram_size=args.no_repeat_ngram_size)
 
     # --- Report ---
     print_report(
@@ -312,8 +333,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-tokens",   type=int,   default=20,   dest="max_tokens",
                    help="Max tokens to generate (default: 20)")
     p.add_argument("--temperature",         type=float, default=0.8)
-    p.add_argument("--repetition-penalty",  type=float, default=1.3,  dest="repetition_penalty",
+    p.add_argument("--repetition-penalty",    type=float, default=1.3, dest="repetition_penalty",
                    help="Penalize repeated tokens (1.0=off, 1.3=moderate, 2.0=strong, default: 1.3)")
+    p.add_argument("--no-repeat-ngram-size",  type=int,   default=2,   dest="no_repeat_ngram_size",
+                   help="Hard-block any n-gram that already appeared (0=off, 2=no bigram repeats, default: 2)")
     p.add_argument("--use-prefix",   action="store_true", dest="use_prefix",
                    help="Start from a random CFG-valid prefix instead of pure BOS")
     p.add_argument("--show",         type=int,   default=10,
