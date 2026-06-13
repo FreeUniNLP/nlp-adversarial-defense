@@ -169,16 +169,18 @@ def defender_complete(
     device:         torch.device,
     min_new_tokens: int = 1,
     with_grad:      bool = False,
-) -> tuple[list[int], torch.Tensor]:
-    """Defender completion. If with_grad, each sampled token's log-prob is
-    tracked for REINFORCE; otherwise runs under no_grad.
+) -> tuple[list[int], torch.Tensor, torch.Tensor]:
+    """Defender completion. If with_grad, each sampled token's log-prob and
+    the full per-step entropy are tracked for REINFORCE; otherwise runs under
+    no_grad.
 
     EOS is masked until min_new_tokens words have been added (same
     environment as AttackPipeline).
-    Returns (full_ids_without_bos, log_probs).
+    Returns (full_ids_without_bos, log_probs, entropies).
     """
     all_ids   = [bos_id] + list(prefix_ids)
     log_probs = []
+    entropies = []
     new_count = 0
 
     ctx = torch.enable_grad() if with_grad else torch.no_grad()
@@ -198,6 +200,8 @@ def defender_complete(
 
             if with_grad:
                 log_probs.append(log_dist[0, next_id])
+                # True per-step entropy: H = -sum(p * log p)
+                entropies.append(-(log_dist.exp() * log_dist).sum())
 
             if next_id == eos_id:
                 break
@@ -205,7 +209,8 @@ def defender_complete(
             new_count += 1
 
     lp = torch.stack(log_probs) if log_probs else torch.zeros(0, device=device)
-    return all_ids[1:], lp
+    ent = torch.stack(entropies) if entropies else torch.zeros(0, device=device)
+    return all_ids[1:], lp, ent
 
 
 # ------------------------------------------------------------------ #
@@ -316,7 +321,7 @@ class AdversarialCoTrainer:
             return None
 
         # --- completion ---
-        full_ids, def_lp = defender_complete(
+        full_ids, def_lp, def_ent = defender_complete(
             self.defender, prefix_ids,
             bos_id=self.tok.bos_id, eos_id=self.tok.eos_id,
             max_new_tokens=a.max_completion, temperature=a.def_temp,
@@ -335,7 +340,7 @@ class AdversarialCoTrainer:
             is_valid=result.is_valid,
             cfg_error=result.error if not result.is_valid else None,
         )
-        return float(rw.reward), result.is_valid, atk_lp, def_lp, prefix_words, suffix_part
+        return float(rw.reward), result.is_valid, atk_lp, def_lp, def_ent, prefix_words, suffix_part
 
     # ------------------------------------------------------------------ #
     #  Phases                                                              #
@@ -357,7 +362,7 @@ class AdversarialCoTrainer:
             out = self._episode(train_side=side)
             if out is None:
                 continue
-            attacker_reward, valid, atk_lp, def_lp, prefix_words, suffix_words = out
+            attacker_reward, valid, atk_lp, def_lp, def_ent, prefix_words, suffix_words = out
             self.global_episode += 1
 
             if side == "attacker":
@@ -380,7 +385,9 @@ class AdversarialCoTrainer:
                     continue
                 reward    = -attacker_reward          # defender minimizes attacker reward
                 advantage = reward - self.baseline_def
-                loss = -(advantage * def_lp.sum())
+                policy_loss = -(advantage * def_lp.sum())
+                entropy_term = def_ent.mean() if def_ent.numel() > 0 else torch.tensor(0.0, device=self.device)
+                loss = policy_loss - a.entropy_coef_defender * entropy_term
 
                 self.opt_def.zero_grad()
                 loss.backward()
@@ -433,7 +440,7 @@ class AdversarialCoTrainer:
             out = self._episode(train_side="eval")  # both frozen paths
             if out is None:
                 continue
-            attacker_reward, valid, *_ = out
+            attacker_reward, valid, *_rest = out
             n += 1
             n_valid      += int(valid)
             total_reward += attacker_reward
@@ -490,8 +497,9 @@ def train(args: argparse.Namespace) -> None:
             "episodes_per_phase": args.x,
             "lr_attacker":        args.lr_attacker,
             "lr_defender":        args.lr_defender,
-            "entropy_coef":       args.entropy_coef,
-            "mix_random":         args.mix_random,
+            "entropy_coef":          args.entropy_coef,
+            "entropy_coef_defender": args.entropy_coef_defender,
+            "mix_random":            args.mix_random,
             "atk_temp":           args.atk_temp,
             "def_temp":           args.def_temp,
             "w_grammar":          args.w_grammar,
@@ -551,7 +559,7 @@ def train(args: argparse.Namespace) -> None:
         out = trainer._episode(train_side="eval")
         if out is None:
             continue
-        reward, valid, _, _, prefix_words, suffix_words = out
+        reward, valid, _, _, _, prefix_words, suffix_words = out
         tag = "OK " if valid else "BAD"
         logger.info(f"  [{tag}] {' '.join(prefix_words)} | {' '.join(suffix_words)}  "
                     f"(R={reward:.3f})")
@@ -581,6 +589,8 @@ def parse_args() -> argparse.Namespace:
                    help="Lower LR for the defender -- it is fine-tuned, not trained from scratch")
     p.add_argument("--entropy-coef",   type=float, default=0.05, dest="entropy_coef",
                    help="Attacker entropy bonus -- prevents mode collapse (default: 0.05)")
+    p.add_argument("--entropy-coef-defender", type=float, default=0.01, dest="entropy_coef_defender",
+                   help="Defender entropy bonus -- prevents mode collapse (default: 0.01)")
     p.add_argument("--mix-random",     type=float, default=0.3,  dest="mix_random",
                    help="Fraction of defender episodes using random CFG prefixes (default: 0.3)")
     p.add_argument("--max-prefix",     type=int,   default=6,    dest="max_prefix")

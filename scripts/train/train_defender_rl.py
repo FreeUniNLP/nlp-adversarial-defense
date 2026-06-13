@@ -173,16 +173,17 @@ def complete_with_log_probs(
     temperature:    float,
     device:         torch.device,
     min_new_tokens: int = 1,
-) -> tuple[list[int], torch.Tensor]:
+) -> tuple[list[int], torch.Tensor, torch.Tensor]:
     """Autoregressive completion where each sampled token keeps its log-prob
-    with gradients attached (REINFORCE trajectory).
+    and the full per-step entropy with gradients attached (REINFORCE trajectory).
 
     EOS is masked until `min_new_tokens` words have been added — mirrors the
     AttackPipeline environment. The EOS choice itself is also a tracked action.
-    Returns (full_ids_without_bos, log_probs_tensor).
+    Returns (full_ids_without_bos, log_probs_tensor, entropies_tensor).
     """
     all_ids   = [bos_id] + list(prefix_ids)
     log_probs = []
+    entropies = []
     new_count = 0
 
     for _ in range(max_new_tokens):
@@ -199,14 +200,17 @@ def complete_with_log_probs(
             next_id = torch.multinomial(log_dist.exp(), num_samples=1).item()
 
         log_probs.append(log_dist[0, next_id])
+        # True per-step entropy: H = -sum(p * log p)
+        entropies.append(-(log_dist.exp() * log_dist).sum())
 
         if next_id == eos_id:
             break
         all_ids.append(next_id)
         new_count += 1
 
-    lp = torch.stack(log_probs) if log_probs else torch.zeros(0, device=device)
-    return all_ids[1:], lp
+    lp  = torch.stack(log_probs) if log_probs else torch.zeros(0, device=device)
+    ent = torch.stack(entropies) if entropies else torch.zeros(0, device=device)
+    return all_ids[1:], lp, ent
 
 
 # ------------------------------------------------------------------ #
@@ -302,6 +306,7 @@ def train(args: argparse.Namespace) -> None:
             "w_grammar":      args.w_grammar,
             "w_tag":          args.w_tag,
             "w_axis":         args.w_axis,
+            "entropy_coef":   args.entropy_coef,
             "baseline_alpha": args.baseline_alpha,
             "seed":           args.seed,
             "defender_ckpt":  str(defender_ckpt_path.name),
@@ -353,7 +358,7 @@ def train(args: argparse.Namespace) -> None:
             continue
 
         # --- Step 2: defender completes WITH log probs (gradients) ---
-        full_ids, log_probs = complete_with_log_probs(
+        full_ids, log_probs, entropies = complete_with_log_probs(
             defender, prefix_ids,
             bos_id=tokenizer.bos_id,
             eos_id=tokenizer.eos_id,
@@ -380,9 +385,11 @@ def train(args: argparse.Namespace) -> None:
         attacker_reward = float(rw.reward)
         defender_reward = -attacker_reward   # defender minimizes the attacker's reward
 
-        # --- Step 4: REINFORCE update ---
+        # --- Step 4: REINFORCE update with entropy bonus ---
         advantage = defender_reward - baseline
-        loss = -(advantage * log_probs.sum())
+        policy_loss = -(advantage * log_probs.sum())
+        entropy_term = entropies.mean() if entropies.numel() > 0 else torch.tensor(0.0, device=device)
+        loss = policy_loss - args.entropy_coef * entropy_term
 
         optimizer.zero_grad()
         loss.backward()
@@ -463,7 +470,7 @@ def train(args: argparse.Namespace) -> None:
                 token_to_id=tokenizer.token_to_id, id_to_token=tokenizer.id_to_token,
                 max_tokens=args.max_prefix, temperature=args.atk_temp, device=str(device),
             )
-        f_ids, _ = complete_with_log_probs(
+        f_ids, _, _ = complete_with_log_probs(
             defender, p_ids, tokenizer.bos_id, tokenizer.eos_id,
             args.max_completion, args.def_temp, device)
         sent = tokenizer.decode(f_ids)
@@ -502,6 +509,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")
     p.add_argument("--w-tag",          type=float, default=0.30, dest="w_tag")
     p.add_argument("--w-axis",         type=float, default=0.20, dest="w_axis")
+    p.add_argument("--entropy-coef",   type=float, default=0.01, dest="entropy_coef",
+                   help="Defender entropy bonus -- prevents mode collapse (default: 0.01)")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha")
     p.add_argument("--grad-clip",      type=float, default=1.0,  dest="grad_clip")
     p.add_argument("--window",         type=int,   default=100)
