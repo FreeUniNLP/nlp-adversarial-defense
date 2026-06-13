@@ -161,14 +161,15 @@ def sample_random_prefix(
 
 
 def defender_complete(
-    defender:       MiniGPT,
-    prefix_ids:     list[int],
-    bos_id:         int,
-    eos_id:         int,
-    max_new_tokens: int,
-    temperature:    float,
-    device:         torch.device,
-    min_new_tokens: int = 1,
+    defender:            MiniGPT,
+    prefix_ids:          list[int],
+    bos_id:              int,
+    eos_id:              int,
+    max_new_tokens:      int,
+    temperature:         float,
+    device:              torch.device,
+    min_new_tokens:      int = 1,
+    repetition_penalty:  float = 1.0,
     with_grad:      bool = False,
 ) -> tuple[list[int], torch.Tensor, torch.Tensor]:
     """Defender completion. If with_grad, each sampled token's log-prob and
@@ -189,6 +190,9 @@ def defender_complete(
 
         with torch.set_grad_enabled(with_grad):
             logits = defender(context)[:, -1, :] / temperature
+            if repetition_penalty != 1.0:
+                for tid in set(all_ids[1:]):
+                    logits[0, tid] /= repetition_penalty
             if new_count < min_new_tokens:
                 mask = torch.zeros_like(logits)
                 mask[0, eos_id] = float("-inf")
@@ -328,6 +332,7 @@ class AdversarialCoTrainer:
             max_new_tokens=a.max_completion, temperature=a.def_temp,
             device=self.device, with_grad=(train_side == "defender"),
             min_new_tokens=a.min_new_tokens,
+            repetition_penalty=a.repetition_penalty,
         )
 
         full_words    = self.tok.decode(full_ids).split()
@@ -597,8 +602,10 @@ def parse_args() -> argparse.Namespace:
                    help="Fraction of defender episodes using random CFG prefixes (default: 0.3)")
     p.add_argument("--max-prefix",     type=int,   default=6,    dest="max_prefix")
     p.add_argument("--max-completion", type=int,   default=20,   dest="max_completion")
-    p.add_argument("--min-new-tokens", type=int,   default=4,    dest="min_new_tokens",
+    p.add_argument("--min-new-tokens",      type=int,   default=4,   dest="min_new_tokens",
                    help="Minimum new tokens the defender must generate before EOS is allowed (default: 4)")
+    p.add_argument("--repetition-penalty",  type=float, default=1.3, dest="repetition_penalty",
+                   help="Penalize repeated tokens in defender completion (1.0=off, default: 1.3)")
     p.add_argument("--atk-temp",       type=float, default=1.0,  dest="atk_temp")
     p.add_argument("--def-temp",       type=float, default=0.8,  dest="def_temp")
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")

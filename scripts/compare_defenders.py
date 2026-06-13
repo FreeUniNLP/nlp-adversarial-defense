@@ -64,14 +64,24 @@ def load_defender(ckpt_path: Path, tokenizer: WordTokenizer, device: torch.devic
 #  Generation                                                          #
 # ------------------------------------------------------------------ #
 
+def apply_repetition_penalty(logits: torch.Tensor, generated_ids: list[int], penalty: float) -> torch.Tensor:
+    """Divide logits of already-generated tokens by penalty (>1 = less likely to repeat)."""
+    if penalty == 1.0:
+        return logits
+    for token_id in set(generated_ids):
+        logits[0, token_id] /= penalty
+    return logits
+
+
 def generate_sentence(
-    model:          MiniGPT,
-    tokenizer:      WordTokenizer,
-    device:         torch.device,
-    temperature:    float,
-    max_tokens:     int,
-    min_tokens:     int,
-    prefix_ids:     list[int] | None = None,
+    model:               MiniGPT,
+    tokenizer:           WordTokenizer,
+    device:              torch.device,
+    temperature:         float,
+    max_tokens:          int,
+    min_tokens:          int,
+    prefix_ids:          list[int] | None = None,
+    repetition_penalty:  float = 1.0,
 ) -> str:
     """Generate one sentence. If prefix_ids is None, starts from BOS only."""
     all_ids = [tokenizer.bos_id] + (prefix_ids or [])
@@ -81,6 +91,7 @@ def generate_sentence(
         for _ in range(max_tokens):
             context = torch.tensor([all_ids[-model.context_len:]], device=device)
             logits  = model(context)[:, -1, :] / temperature
+            logits  = apply_repetition_penalty(logits, all_ids[1:], repetition_penalty)
             if new_count < min_tokens:
                 logits[0, tokenizer.eos_id] = float("-inf")
             probs   = F.softmax(logits, dim=-1)
@@ -94,16 +105,17 @@ def generate_sentence(
 
 
 def generate_batch(
-    model:       MiniGPT,
-    tokenizer:   WordTokenizer,
-    validator:   CFGValidator,
-    tracker:     CFGStateTracker,
-    device:      torch.device,
-    n:           int,
-    temperature: float,
-    max_tokens:  int,
-    min_tokens:  int,
-    use_prefix:  bool,
+    model:               MiniGPT,
+    tokenizer:           WordTokenizer,
+    validator:           CFGValidator,
+    tracker:             CFGStateTracker,
+    device:              torch.device,
+    n:                   int,
+    temperature:         float,
+    max_tokens:          int,
+    min_tokens:          int,
+    use_prefix:          bool,
+    repetition_penalty:  float = 1.0,
 ) -> list[dict]:
     """Generate n sentences and return list of result dicts."""
     results = []
@@ -127,7 +139,8 @@ def generate_batch(
             prefix_ids = ids if ids else None
 
         sent = generate_sentence(
-            model, tokenizer, device, temperature, max_tokens, min_tokens, prefix_ids)
+            model, tokenizer, device, temperature, max_tokens, min_tokens, prefix_ids,
+            repetition_penalty=repetition_penalty)
         res  = validator.validate(sent)
         words = sent.split()
         results.append({
@@ -265,14 +278,16 @@ def main() -> None:
 
     baseline_results = generate_batch(
         baseline, tokenizer, validator, tracker, device,
-        args.n, args.temperature, args.max_tokens, args.min_tokens, args.use_prefix)
+        args.n, args.temperature, args.max_tokens, args.min_tokens, args.use_prefix,
+        repetition_penalty=args.repetition_penalty)
 
     random.seed(args.seed)
     torch.manual_seed(args.seed)
 
     trained_results = generate_batch(
         trained, tokenizer, validator, tracker, device,
-        args.n, args.temperature, args.max_tokens, args.min_tokens, args.use_prefix)
+        args.n, args.temperature, args.max_tokens, args.min_tokens, args.use_prefix,
+        repetition_penalty=args.repetition_penalty)
 
     # --- Report ---
     print_report(
@@ -296,7 +311,9 @@ def parse_args() -> argparse.Namespace:
                    help="Min new tokens before EOS is allowed (default: 4)")
     p.add_argument("--max-tokens",   type=int,   default=20,   dest="max_tokens",
                    help="Max tokens to generate (default: 20)")
-    p.add_argument("--temperature",  type=float, default=0.8)
+    p.add_argument("--temperature",         type=float, default=0.8)
+    p.add_argument("--repetition-penalty",  type=float, default=1.3,  dest="repetition_penalty",
+                   help="Penalize repeated tokens (1.0=off, 1.3=moderate, 2.0=strong, default: 1.3)")
     p.add_argument("--use-prefix",   action="store_true", dest="use_prefix",
                    help="Start from a random CFG-valid prefix instead of pure BOS")
     p.add_argument("--show",         type=int,   default=10,

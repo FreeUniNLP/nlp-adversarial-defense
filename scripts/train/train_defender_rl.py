@@ -166,14 +166,15 @@ def sample_random_prefix(
 # ------------------------------------------------------------------ #
 
 def complete_with_log_probs(
-    defender:       MiniGPT,
-    prefix_ids:     list[int],
-    bos_id:         int,
-    eos_id:         int,
-    max_new_tokens: int,
-    temperature:    float,
-    device:         torch.device,
-    min_new_tokens: int = 1,
+    defender:            MiniGPT,
+    prefix_ids:          list[int],
+    bos_id:              int,
+    eos_id:              int,
+    max_new_tokens:      int,
+    temperature:         float,
+    device:              torch.device,
+    min_new_tokens:      int = 1,
+    repetition_penalty:  float = 1.0,
 ) -> tuple[list[int], torch.Tensor, torch.Tensor]:
     """Autoregressive completion where each sampled token keeps its log-prob
     and the full per-step entropy with gradients attached (REINFORCE trajectory).
@@ -190,6 +191,10 @@ def complete_with_log_probs(
     for _ in range(max_new_tokens):
         context = torch.tensor([all_ids[-defender.context_len:]], device=device)
         logits  = defender(context)[:, -1, :] / temperature
+
+        if repetition_penalty != 1.0:
+            for tid in set(all_ids[1:]):
+                logits[0, tid] /= repetition_penalty
 
         if new_count < min_new_tokens:
             mask = torch.zeros_like(logits)
@@ -367,6 +372,7 @@ def train(args: argparse.Namespace) -> None:
             temperature=args.def_temp,
             device=device,
             min_new_tokens=args.min_new_tokens,
+            repetition_penalty=args.repetition_penalty,
         )
         if log_probs.numel() == 0:
             continue
@@ -475,7 +481,8 @@ def train(args: argparse.Namespace) -> None:
         f_ids, _, _ = complete_with_log_probs(
             defender, p_ids, tokenizer.bos_id, tokenizer.eos_id,
             args.max_completion, args.def_temp, device,
-            min_new_tokens=args.min_new_tokens)
+            min_new_tokens=args.min_new_tokens,
+            repetition_penalty=args.repetition_penalty)
         sent = tokenizer.decode(f_ids)
         ok = validator.validate(sent).is_valid
         n_valid += ok
@@ -503,8 +510,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--weight-decay",   type=float, default=0.0,  dest="weight_decay")
     p.add_argument("--max-prefix",     type=int,   default=6,    dest="max_prefix")
     p.add_argument("--max-completion", type=int,   default=20,   dest="max_completion")
-    p.add_argument("--min-new-tokens", type=int,   default=4,    dest="min_new_tokens",
+    p.add_argument("--min-new-tokens",      type=int,   default=4,   dest="min_new_tokens",
                    help="Minimum new tokens the defender must generate before EOS is allowed (default: 4)")
+    p.add_argument("--repetition-penalty",  type=float, default=1.3, dest="repetition_penalty",
+                   help="Penalize repeated tokens in defender completion (1.0=off, default: 1.3)")
     p.add_argument("--atk-temp",       type=float, default=1.0,  dest="atk_temp")
     p.add_argument("--def-temp",       type=float, default=0.8,  dest="def_temp")
     p.add_argument("--mix-random",     type=float, default=0.3,  dest="mix_random",
