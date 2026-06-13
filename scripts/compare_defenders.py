@@ -182,6 +182,18 @@ def compute_stats(results: list[dict]) -> dict:
     sentences  = [r["sentence"] for r in results]
     unique     = len(set(sentences))
     error_ctr  = Counter(r["error"] for r in results if not r["valid"])
+
+    # --- vocabulary diversity across the whole batch ---
+    all_words   = [w for r in results for w in r["sentence"].split()]
+    word_ctr    = Counter(all_words)
+    total_words = len(all_words)
+    distinct    = len(word_ctr)
+    # share of all generated words taken by the single most common word
+    top_word, top_count = word_ctr.most_common(1)[0] if word_ctr else ("-", 0)
+    top_share   = top_count / total_words * 100 if total_words else 0.0
+    # share taken by the top-3 words (how concentrated is the vocabulary)
+    top3_share  = sum(c for _, c in word_ctr.most_common(3)) / total_words * 100 if total_words else 0.0
+
     return {
         "n":            n,
         "valid":        n_valid,
@@ -192,6 +204,11 @@ def compute_stats(results: list[dict]) -> dict:
         "unique":       unique,
         "unique_pct":   unique / n * 100,
         "top_errors":   error_ctr.most_common(3),
+        "distinct_words": distinct,
+        "top_word":     top_word,
+        "top_share":    top_share,
+        "top3_share":   top3_share,
+        "top_words":    word_ctr.most_common(6),
     }
 
 
@@ -208,11 +225,10 @@ def print_report(
     def delta(b, t, higher_is_better=True):
         d = t - b
         sign = "+" if d >= 0 else ""
-        arrow = ("↑" if d > 0 else "↓") if d != 0 else "="
         if higher_is_better:
-            tag = " ✓" if d > 0 else (" ✗" if d < 0 else "")
+            tag = " (better)" if d > 0 else (" (worse)" if d < 0 else "")
         else:
-            tag = " ✓" if d < 0 else (" ✗" if d > 0 else "")
+            tag = " (better)" if d < 0 else (" (worse)" if d > 0 else "")
         return f"{sign}{d:.1f}{tag}"
 
     w = 30
@@ -227,6 +243,12 @@ def print_report(
     print(f"  {'Avg length (words)':<22}  {bs['avg_len']:>14.1f}  {ts['avg_len']:>14.1f}  {delta(bs['avg_len'], ts['avg_len']):>10}")
     print(f"  {'Min / Max length':<22}  {bs['min_len']:>6}/{bs['max_len']:<7}  {ts['min_len']:>6}/{ts['max_len']:<7}")
     print(f"  {'Unique sentences (%)':<22}  {bs['unique_pct']:>13.1f}%  {ts['unique_pct']:>13.1f}%  {delta(bs['unique_pct'], ts['unique_pct']):>10}")
+    print(f"  {'Distinct words used':<22}  {bs['distinct_words']:>14}  {ts['distinct_words']:>14}  {delta(bs['distinct_words'], ts['distinct_words']):>10}")
+    print(f"  {'Top word share (%)':<22}  {bs['top_share']:>13.1f}%  {ts['top_share']:>13.1f}%  {delta(bs['top_share'], ts['top_share'], higher_is_better=False):>10}")
+    print(f"  {'Top-3 word share (%)':<22}  {bs['top3_share']:>13.1f}%  {ts['top3_share']:>13.1f}%  {delta(bs['top3_share'], ts['top3_share'], higher_is_better=False):>10}")
+    print()
+    print(f"  Most-used words (baseline): " + ", ".join(f"{w}:{c}" for w, c in bs['top_words']))
+    print(f"  Most-used words (trained) : " + ", ".join(f"{w}:{c}" for w, c in ts['top_words']))
     print()
 
     if bs["top_errors"] or ts["top_errors"]:
@@ -239,19 +261,23 @@ def print_report(
         print()
 
     # Side-by-side sentence samples
-    print(f"  {'─'*70}")
+    # Side-by-side sentence samples
+    max_b = max(len(f"[{'V' if r['valid'] else 'X'}] {r['sentence']}") for r in baseline_results[:n_samples])
+    max_t = max(len(f"[{'V' if r['valid'] else 'X'}] {r['sentence']}") for r in trained_results[:n_samples])
+    col_w = max(max_b, max_t, 33)
+
+    print(f"  {'─'*(col_w*2+4)}")
     print(f"  SAMPLE SENTENCES  (V=valid  X=invalid)")
-    print(f"  {'─'*70}")
-    print(f"  {'BASELINE':^33}  {'TRAINED':^33}")
-    print(f"  {'─'*33}  {'─'*33}")
+    print(f"  {'─'*(col_w*2+4)}")
+    print(f"  {'BASELINE':^{col_w}}  {'TRAINED':^{col_w}}")
+    print(f"  {'─'*col_w}  {'─'*col_w}")
     for b, t in zip(baseline_results[:n_samples], trained_results[:n_samples]):
         b_tag = "V" if b["valid"] else "X"
         t_tag = "V" if t["valid"] else "X"
-        b_str = f"[{b_tag}] {b['sentence']}"[:33]
-        t_str = f"[{t_tag}] {t['sentence']}"[:33]
-        print(f"  {b_str:<33}  {t_str:<33}")
-    print("=" * 70)
-    print()
+        b_str = f"[{b_tag}] {b['sentence']}"
+        t_str = f"[{t_tag}] {t['sentence']}"
+        print(f"  {b_str:<{col_w}}  {t_str:<{col_w}}")
+    print("=" * (col_w*2+6))
 
 
 # ------------------------------------------------------------------ #

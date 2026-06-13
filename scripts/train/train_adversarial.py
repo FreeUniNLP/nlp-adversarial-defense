@@ -42,7 +42,7 @@ import os
 import random
 import sys
 import time
-from collections import deque
+from collections import Counter, deque
 from pathlib import Path
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
@@ -274,7 +274,40 @@ class AdversarialCoTrainer:
         self.baseline_atk = 0.0
         self.baseline_def = 0.0
 
+        # --- Global vocabulary-coverage tracking (anti vocab-collapse) ---
+        # Counts how often each word has appeared in the defender's recent
+        # completions. Over-used words (FALL, BURN...) get penalized so the
+        # defender is pushed to spread across the whole vocabulary.
+        self.word_window = deque(maxlen=args.diversity_window)
+        self.word_counts: Counter = Counter()
+
         self.global_episode = 0
+
+    # ------------------------------------------------------------------ #
+    #  Vocabulary-coverage penalty                                         #
+    # ------------------------------------------------------------------ #
+
+    def _overuse_score(self, words: list[str]) -> float:
+        """Mean recent frequency of the given words, in [0, 1].
+
+        0 = all words are unseen/rare in recent output; ~1 = the completion
+        is made entirely of the single most over-used word.
+        """
+        total = sum(self.word_counts.values())
+        if total == 0 or not words:
+            return 0.0
+        return sum(self.word_counts.get(w, 0) / total for w in words) / len(words)
+
+    def _update_word_window(self, words: list[str]) -> None:
+        """Push the completion's words into the rolling frequency window."""
+        for w in words:
+            if len(self.word_window) == self.word_window.maxlen:
+                old = self.word_window[0]  # will be evicted by the append below
+                self.word_counts[old] -= 1
+                if self.word_counts[old] <= 0:
+                    del self.word_counts[old]
+            self.word_window.append(w)
+            self.word_counts[w] += 1
 
     # ------------------------------------------------------------------ #
 
@@ -404,7 +437,11 @@ class AdversarialCoTrainer:
             else:
                 if def_lp.numel() == 0:
                     continue
-                reward    = -attacker_reward          # defender minimizes attacker reward
+                # Global vocab-coverage penalty: discourage over-used words so the
+                # defender spreads across the vocabulary instead of leaning on FALL/BURN.
+                overuse = self._overuse_score(suffix_words)
+                self._update_word_window(suffix_words)
+                reward    = -attacker_reward - a.w_diversity * overuse  # defender minimizes attacker reward + overuse
                 advantage = reward - self.baseline_def
                 policy_loss = -(advantage * def_lp.sum())
                 entropy_term = def_ent.mean() if def_ent.numel() > 0 else torch.tensor(0.0, device=self.device)
@@ -630,6 +667,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--w-repeat",       type=float, default=1.0,  dest="w_repeat",
                    help="Repetition penalty weight -- heavily penalizes the defender for "
                         "repeating words in its completion (default: 1.0)")
+    p.add_argument("--w-diversity",    type=float, default=1.5,  dest="w_diversity",
+                   help="Vocabulary-coverage penalty weight -- penalizes the defender for "
+                        "over-using globally frequent words (FALL/BURN). Pushes the model to "
+                        "spread across the whole vocabulary (default: 1.5)")
+    p.add_argument("--diversity-window", type=int, default=2000, dest="diversity_window",
+                   help="Rolling window (in words) used to estimate word frequencies for the "
+                        "vocabulary-coverage penalty (default: 2000)")
     p.add_argument("--min-valid",       type=float, default=0.0,  dest="min_valid",
                    help="Early-stop attacker phase if rolling valid rate drops below this (default: 0 = disabled)")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha")
