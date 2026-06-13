@@ -305,7 +305,8 @@ def train(args: argparse.Namespace) -> None:
     # --- Reward (same system as the attacker's) ---
     reward_fn = RewardFunction(
         nouns=nouns, verbs=verbs, adjectives=adjectives,
-        weights=RewardWeights(w_grammar=args.w_grammar, w_tag=args.w_tag, w_axis=args.w_axis),
+        weights=RewardWeights(w_grammar=args.w_grammar, w_tag=args.w_tag, w_axis=args.w_axis,
+                              w_repeat=args.w_repeat),
     )
 
     optimizer = torch.optim.AdamW(defender.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -539,6 +540,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")
     p.add_argument("--w-tag",          type=float, default=0.30, dest="w_tag")
     p.add_argument("--w-axis",         type=float, default=0.20, dest="w_axis")
+    p.add_argument("--w-repeat",       type=float, default=1.0,  dest="w_repeat",
+                   help="Repetition penalty weight -- heavily penalizes the defender for "
+                        "repeating words in its completion (default: 1.0)")
     p.add_argument("--entropy-coef",   type=float, default=0.01, dest="entropy_coef",
                    help="Defender entropy bonus -- prevents mode collapse (default: 0.01)")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha")

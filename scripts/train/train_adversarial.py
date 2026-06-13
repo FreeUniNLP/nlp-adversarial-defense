@@ -262,7 +262,8 @@ class AdversarialCoTrainer:
         self.reward_fn = RewardFunction(
             nouns=nouns, verbs=verbs, adjectives=adjectives,
             weights=RewardWeights(w_grammar=args.w_grammar,
-                                  w_tag=args.w_tag, w_axis=args.w_axis),
+                                  w_tag=args.w_tag, w_axis=args.w_axis,
+                                  w_repeat=args.w_repeat),
         )
 
         # --- Optimizers (persist across rounds) ---
@@ -626,6 +627,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")
     p.add_argument("--w-tag",          type=float, default=0.30, dest="w_tag")
     p.add_argument("--w-axis",         type=float, default=0.20, dest="w_axis")
+    p.add_argument("--w-repeat",       type=float, default=1.0,  dest="w_repeat",
+                   help="Repetition penalty weight -- heavily penalizes the defender for "
+                        "repeating words in its completion (default: 1.0)")
     p.add_argument("--min-valid",       type=float, default=0.0,  dest="min_valid",
                    help="Early-stop attacker phase if rolling valid rate drops below this (default: 0 = disabled)")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha")
