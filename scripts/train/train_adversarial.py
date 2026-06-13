@@ -327,6 +327,7 @@ class AdversarialCoTrainer:
             bos_id=self.tok.bos_id, eos_id=self.tok.eos_id,
             max_new_tokens=a.max_completion, temperature=a.def_temp,
             device=self.device, with_grad=(train_side == "defender"),
+            min_new_tokens=a.min_new_tokens,
         )
 
         full_words    = self.tok.decode(full_ids).split()
@@ -595,7 +596,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--mix-random",     type=float, default=0.3,  dest="mix_random",
                    help="Fraction of defender episodes using random CFG prefixes (default: 0.3)")
     p.add_argument("--max-prefix",     type=int,   default=6,    dest="max_prefix")
-    p.add_argument("--max-completion", type=int,   default=15,   dest="max_completion")
+    p.add_argument("--max-completion", type=int,   default=20,   dest="max_completion")
+    p.add_argument("--min-new-tokens", type=int,   default=4,    dest="min_new_tokens",
+                   help="Minimum new tokens the defender must generate before EOS is allowed (default: 4)")
     p.add_argument("--atk-temp",       type=float, default=1.0,  dest="atk_temp")
     p.add_argument("--def-temp",       type=float, default=0.8,  dest="def_temp")
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")
