@@ -14,13 +14,8 @@ is no annotation cost, no ambiguity, and no dependence on pretrained resources. 
 whole reason the project can give clean, quantitative answers about attack success and defense
 robustness.
 
-> This README doubles as the **project report**. The three report requirements are addressed
-> directly:
-> - **§5 — why this loss function and architecture**
-> - **§6 — how training went, with graphs**
-> - **§7 — evaluation tasks, why we chose them, and the results**
->
-> 🇬🇪 A Georgian-language version of the report is in **[`REPORT_KA.md`](REPORT_KA.md)**.
+> 🇬🇪 The graded technical report is **[`REPORT_KA.md`](REPORT_KA.md)** (Georgian).
+> This README is the technical guide — architecture, how to run, component reference.
 
 ---
 
@@ -30,9 +25,9 @@ robustness.
 2. [The synthetic language](#2-the-synthetic-language)
 3. [System architecture](#3-system-architecture)
 4. [Repository layout](#4-repository-layout)
-5. [Design decisions: architecture & loss functions](#5-design-decisions-architecture--loss-functions)  ← *report pt.1*
-6. [Training: how it went, with graphs](#6-training-how-it-went-with-graphs)  ← *report pt.2*
-7. [Evaluation: tasks, rationale & results](#7-evaluation-tasks-rationale--results)  ← *report pt.3*
+5. [Design decisions: architecture & loss functions](#5-design-decisions-architecture--loss-functions)
+6. [Training: how it went, with graphs](#6-training-how-it-went-with-graphs)
+7. [Evaluation: tasks, rationale & results](#7-evaluation-tasks-rationale--results)
 8. [Problems we hit and how we solved them](#8-problems-we-hit-and-how-we-solved-them)
 9. [Component reference](#9-component-reference)
 10. [How to run / reproduce](#10-how-to-run--reproduce)
@@ -193,8 +188,6 @@ dependency. Moving it out makes both agents depend only on shared, side-agnostic
 
 ## 5. Design decisions: architecture & loss functions
 
-*(Report requirement 1 — justification of the model architecture and loss function.)*
-
 ### 5.1 Why a decoder-only causal Transformer
 
 The core task is **autoregressive generation**: produce / complete a sentence left-to-right.
@@ -315,8 +308,6 @@ The cross-entropy term continuously anchors the model's output distribution to t
 
 ## 6. Training: how it went, with graphs
 
-*(Report requirement 2 — the training process, illustrated.)*
-
 All figures below are generated directly from the CSV logs in `logs/` by
 `python scripts/plot_report_figures.py`.
 
@@ -388,8 +379,6 @@ validity (green) dips during every attacker phase and recovers during every defe
 ---
 
 ## 7. Evaluation: tasks, rationale & results
-
-*(Report requirement 3 — what we evaluate, why, and the numbers.)*
 
 **Why these metrics.** The synthetic language was chosen precisely so that **validity is a
 ground-truth label**: the `CFGValidator` gives an exact valid/invalid verdict for any sentence,
