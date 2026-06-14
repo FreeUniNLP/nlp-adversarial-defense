@@ -1,847 +1,537 @@
-# NLP Adversarial Defense
+# NLP Adversarial Defense — Project & Report
 
-A research project that studies how a language model defends against an adversarial attacker in a controlled synthetic language. The attacker generates grammatically valid sentence prefixes designed to push the defender off-topic or into producing invalid grammar. The defender (MiniGPT) completes those prefixes. A structured reward signal tells us how successful the attack was.
+A research project that studies how a small language model **defends** against an adversarial
+**attacker** inside a fully controlled synthetic language. The attacker generates
+grammatically valid sentence *prefixes* designed to push the defender into producing an
+*invalid* or *off-topic* completion. The defender (MiniGPT) completes those prefixes. A
+structured reward signal measures exactly how successful each attack was, and that signal
+drives reinforcement learning on both sides.
+
+Because the language is synthetic, **validity is binary and objectively measurable** — there
+is no annotation cost, no ambiguity, and no dependence on pretrained resources. That is the
+whole reason the project can give clean, quantitative answers about attack success and defense
+robustness.
+
+> This README doubles as the **project report**. The three report requirements are addressed
+> directly:
+> - **§5 — why this loss function and architecture**
+> - **§6 — how training went, with graphs**
+> - **§7 — evaluation tasks, why we chose them, and the results**
 
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#1-project-overview)
-2. [Synthetic Language](#2-synthetic-language)
-3. [Project Structure](#3-project-structure)
-4. [Components](#4-components)
-   - [Lexicon and Parser](#41-lexicon-and-parser)
-   - [Context-Free Grammar](#42-context-free-grammar)
-   - [CFG Validator](#43-cfg-validator)
-   - [Word Tokenizer](#44-word-tokenizer)
-   - [MiniGPT Defender](#45-minigpt-defender)
-   - [CFG State Tracker](#46-cfg-state-tracker)
-   - [Attacker Transformer](#47-attacker-transformer)
-   - [Reward Simple](#48-reward-simple)
-   - [Reward Function Structured](#49-reward-function-structured)
-   - [Attack Pipeline](#410-attack-pipeline)
-5. [Scripts](#5-scripts)
-6. [Tests](#6-tests)
-7. [Setup and Installation](#7-setup-and-installation)
-8. [How to Run](#8-how-to-run)
-9. [Experiment Tracking](#9-experiment-tracking)
-10. [Architecture Diagram](#10-architecture-diagram)
-11. [Key Design Decisions](#11-key-design-decisions)
+1. [Project overview](#1-project-overview)
+2. [The synthetic language](#2-the-synthetic-language)
+3. [System architecture](#3-system-architecture)
+4. [Repository layout](#4-repository-layout)
+5. [Design decisions: architecture & loss functions](#5-design-decisions-architecture--loss-functions)  ← *report pt.1*
+6. [Training: how it went, with graphs](#6-training-how-it-went-with-graphs)  ← *report pt.2*
+7. [Evaluation: tasks, rationale & results](#7-evaluation-tasks-rationale--results)  ← *report pt.3*
+8. [Problems we hit and how we solved them](#8-problems-we-hit-and-how-we-solved-them)
+9. [Component reference](#9-component-reference)
+10. [How to run / reproduce](#10-how-to-run--reproduce)
+11. [Experiment tracking (MLflow + DagsHub)](#11-experiment-tracking-mlflow--dagshub)
+12. [Tests](#12-tests)
+13. [Setup & installation](#13-setup--installation)
 
 ---
 
-## 1. Project Overview
-
-This project implements a full **adversarial attack and defense loop** over a synthetic mini-language:
+## 1. Project overview
 
 ```
-Attacker  -->  CFG-valid prefix  -->  MiniGPT (defender)  -->  completed sentence
-                                                                      |
-                                                              CFGValidator checks
-                                                                      |
-                                                            RewardFunction scores
-                                                                      |
-                                                            reward signal (RL-ready)
+Attacker ──► CFG-valid prefix ──► MiniGPT (defender) ──► completed sentence
+                                                              │
+                                                       CFGValidator checks
+                                                              │
+                                                     RewardFunction scores
+                                                              │
+                                              scalar reward  ──►  REINFORCE (both sides)
 ```
 
-**Goal of the attacker:** generate a prefix that causes the defender to complete the sentence in a way that is either grammatically invalid or semantically off-topic relative to the prefix.
+- **Attacker goal:** produce a prefix that makes the defender complete the sentence either
+  *ungrammatically* or *off-topic* relative to the prefix.
+- **Defender goal:** complete any prefix into a fluent, grammatically and semantically valid
+  sentence.
+- **Same reward, opposite signs:** the attacker maximizes `R`; the defender maximizes `−R`.
 
-**Goal of the defender:** complete any given prefix into a fluent, grammatically valid sentence according to the CFG rules.
-
-**Why a synthetic language?** Using a fully controlled grammar lets us measure validity and semantic distance precisely — something impossible with real natural language.
+The project runs the full loop end-to-end: supervised pretraining of the defender, REINFORCE
+training of the attacker, REINFORCE fine-tuning of the defender, and finally **adversarial
+co-training** where the two alternate.
 
 ---
 
-## 2. Synthetic Language
-
-The language is built from a hand-crafted lexicon and a context-free grammar.
+## 2. The synthetic language
 
 ### Lexicon
 
-| Type | Count | Description |
+| Type | Count | Examples of categories |
 |---|---|---|
-| Nouns | 69 | Humans, animals, objects, places, abstract concepts, machines |
-| Verbs | 32 | Actions — transitive (require object) and intransitive (no object) |
-| Adjectives | 41 | Modifiers that change noun compatibility |
+| Nouns | 69 | `ALIVE`, `HUMAN`, `ANIMAL`, `MACHINE`, `ABSTRACT`, `PLACE` |
+| Verbs | 32 | `PHYSICAL_ACTION`, `LOCOMOTION`, `DESTRUCTION`, `SYSTEM_ACTION` |
+| Adjectives | 41 | `SIZE`, `QUALITY`, `STATE`, `CONDITION` |
 
 Every word carries two semantic properties:
 
-**Tags** — semantic category labels, for example:
-- Nouns: `ALIVE`, `HUMAN`, `ANIMAL`, `MACHINE`, `ABSTRACT`, `PLACE`
-- Verbs: `PHYSICAL_ACTION`, `LOCOMOTION`, `DESTRUCTION`, `SYSTEM_ACTION`
-- Adjectives: `SIZE`, `QUALITY`, `STATE`, `CONDITION`
+- **Tags** — discrete category labels (e.g. `MAN → {ALIVE, HUMAN}`).
+- **Axis values** — a 4-D real vector that places the word in a continuous semantic space:
 
-**Axis values** — a 4-dimensional real-valued vector:
+  | Axis | Meaning | Range |
+  |---|---|---|
+  | `agency` | capacity for autonomous action | 0–5 |
+  | `physicality` | physical concreteness | 0–5 |
+  | `social` | social / relational quality | 0–5 |
+  | `system` | machine / computational quality | 0–5 |
 
-| Dimension | Meaning | Range |
-|---|---|---|
-| `agency` | capacity for autonomous action | 0 to 5 |
-| `physicality` | physical concreteness | 0 to 5 |
-| `social` | social or relational quality | 0 to 5 |
-| `system` | machine or computational quality | 0 to 5 |
-
-### Grammar (CFG)
+### Grammar (context-free skeleton)
 
 ```
-START        -> SUBJECT_TERM
-SUBJECT_TERM -> SUBJECT VERB_TERM
-SUBJECT      -> NOUN | ADJ NOUN
-VERB_TERM    -> VERB | VERB OBJECT | VERB VERB_TERM | VERB OBJECT VERB_TERM
-OBJECT       -> NOUN | ADJ NOUN | ADJ ADJ NOUN
+START        → SUBJECT_TERM
+SUBJECT_TERM → SUBJECT VERB_TERM
+SUBJECT      → NOUN | ADJ NOUN
+VERB_TERM    → VERB | VERB OBJECT | VERB VERB_TERM | VERB OBJECT VERB_TERM
+OBJECT       → NOUN | ADJ NOUN | ADJ ADJ NOUN
 ```
 
-`VERB_TERM` is recursive in two ways: a new verb term can follow either a
-complete object (`VERB OBJECT VERB_TERM`) or a bare verb (`VERB VERB_TERM`).
-This means verb chains like `MAN RUN FALL` are grammatical — there is no
-strict sentence end after a verb.
+`VERB_TERM` is recursive: a new verb term can follow a complete object *or* a bare
+(intransitive) verb, so verb chains like `MAN RUN FALL` are grammatical.
 
-**Semantic constraints** are layered on top of the skeleton:
-- Every verb requires its subject to have compatible tags and axis values
-- Transitive verbs require the object to satisfy additional tag and axis constraints
-- A bare verb (used without an object) must be intransitive — a transitive
-  verb must place its object before the next verb can start
-- Adjectives narrow down which nouns they can modify via tag overlap and axis bounds
+### Semantic constraints (layered on top of the skeleton)
 
-Example valid sentences:
-```
-MAN RUN
-MAN RUN FALL
-FREE WOLF FALL
-DRONE BREAK CLOCK
-STRONG MAN CARRY SMALL BOOK FORGET LIE
-```
+- Every verb requires its **subject** to satisfy tag-overlap + axis-bound constraints.
+- **Transitive** verbs additionally constrain their **object**.
+- A bare verb must be **intransitive**; a transitive verb must place its object before the
+  next verb can start.
+- Adjectives narrow which nouns they can modify (tag overlap + axis bounds, which *stack*
+  across multiple adjectives).
+
+Valid examples: `MAN RUN` · `MAN RUN FALL` · `FREE WOLF FALL` · `DRONE BREAK CLOCK` ·
+`STRONG MAN CARRY SMALL BOOK FORGET LIE`
+
+Invalid example: `RIVER BURN` → *“Verb 'BURN' is incompatible with subject 'RIVER'.”*
 
 ---
 
-## 3. Project Structure
+## 3. System architecture
+
+```
+┌──────────────────────┐    CFG-valid prefix    ┌──────────────────────┐
+│  AttackerTransformer  │ ─────────────────────► │  MiniGPT (Defender)  │
+│   210k params         │                        │   210k params        │
+│   CFG-masked decoding │ ◄───────────────────── │  free completion     │
+└──────────┬───────────┘   completed sentence    └──────────┬───────────┘
+           │                                                  │
+           ▼                                                  ▼
+┌──────────────────────┐                          ┌──────────────────────┐
+│   CFGStateTracker     │                          │     CFGValidator      │
+│  grammar FSM; filters │                          │  1 unknown-word check │
+│  valid next tokens +  │                          │  2 skeleton check     │
+│  viability pruning    │                          │  3 semantic check     │
+└──────────────────────┘                          └──────────┬───────────┘
+                                                              │ valid / invalid + reason
+                                                              ▼
+                                          ┌─────────────────────────────────────┐
+                                          │            RewardFunction            │
+                                          │  split → features → distances → R    │
+                                          │  R = w_g·grammar + w_t·tag + w_a·axis │
+                                          └─────────────────────────────────────┘
+```
+
+Attacker and defender share the **exact same architecture and parameter count** so that any
+performance difference is attributable to the *training signal*, not model capacity.
+
+---
+
+## 4. Repository layout
 
 ```
 nlp-adversarial-defense/
-|
-|-- data/
-|   |-- raw/
-|   |   |-- word_centered_language/
-|   |   |   |-- words.json               full lexicon (nouns, verbs, adjectives)
-|   |   |   `-- transition.json          CFG rules and semantic constraints
-|   |   `-- generated_texts/
-|   |       |-- generated_corpus_100.txt
-|   |       |-- generated_corpus_1000.txt
-|   |       |-- generated_corpus_5000.txt
-|   |       `-- generated_corpus_10000.txt    training corpus (10k sentences)
-|   `-- models/
-|       `-- minigpt_corpus10000.pt            trained MiniGPT checkpoint
-|
-|-- src/
-|   |-- language/
-|   |   |-- parsers.py                   LexiconParser
-|   |   |-- entities/
-|   |   |   |-- word_entity.py           NounEntry, VerbEntry, AdjectiveEntry dataclasses
-|   |   |   |-- cfg.py                   CFG -- skeleton generation and sentence building
-|   |   |   |-- cfg_base.py              shared semantic constraint logic
-|   |   |   `-- cfg_validator.py         CFGValidator -- full sentence validation
-|   |   `-- reader.py
-|   |
-|   |-- model/
-|   |   |-- tokenizer.py                 WordTokenizer -- word-level BOS/EOS/PAD/UNK
-|   |   `-- transformer.py               MiniGPT -- decoder-only causal Transformer
-|   |
-|   `-- attacker/
-|       |-- cfg_state_tracker.py         CFGStateTracker -- grammar state machine
-|       |-- attacker.py                  AttackerTransformer -- CFG-masked generation
-|       |-- reward.py                    RewardComputer -- simple reward module
-|       `-- reward_function.py           RewardFunction -- structured reward module
-|
-|-- scripts/
-|   |-- train/
-|   |   `-- train_model.py               MiniGPT training loop with MLflow logging
-|   |-- attack_and_complete.py           full AttackPipeline
-|   |-- demo_reward_function.py          step-by-step reward function demo
-|   |-- complete_and_validate.py         prefix -> MiniGPT -> CFGValidator
-|   |-- infer.py                         interactive MiniGPT sentence completion
-|   |-- run_attacker.py                  generate and display attacker prefixes
-|   |-- test_attacker.py                 manual labelled test script
-|   `-- validate_sentence.py             validate a sentence against the CFG
-|
-|-- tests/
-|   |-- conftest.py                      shared fixtures and paths
-|   |-- test_lexicon_parser.py           12 tests
-|   |-- test_cfg.py                       7 tests
-|   |-- test_cfg_validator.py            14 tests
-|   |-- test_tokenizer.py                 9 tests
-|   |-- test_minigpt.py                   5 tests
-|   |-- test_cfg_state_tracker.py        17 tests
-|   |-- test_attacker_transformer.py      9 tests
-|   |-- test_reward_computer.py          22 tests
-|   `-- test_reward_function.py          54 tests
-|
-|-- config.py                            MLflow / DagsHub credentials
-`-- README.md
+├── data/
+│   ├── raw/word_centered_language/   words.json (lexicon) + transition.json (grammar)
+│   ├── raw/generated_texts/          generated_corpus_{100,500,1000,5000,10000}.txt
+│   └── models/                       trained checkpoints (+ from_mlflow/, cotrain/)
+│
+├── src/
+│   ├── language/                     lexicon parsing, CFG, CFG validator
+│   │   └── entities/                 word_entity, cfg, cfg_base, cfg_validator
+│   ├── model/                        tokenizer, transformer (MiniGPT)
+│   ├── attacker/                     attacker.py, cfg_state_tracker.py
+│   ├── reward/                       ◄ shared reward logic (neutral package)
+│   │   ├── reward_computer.py        simple scalar reward
+│   │   ├── reward_function.py        structured per-POS reward (attacker view)
+│   │   └── defender_reward.py        inverted reward (defender view)
+│   └── defender/                     re-exports defender reward
+│
+├── scripts/
+│   ├── train/                        train_model, train_attacker, train_defender,
+│   │                                 train_defender_rl, train_adversarial
+│   ├── eval/                         attack_and_complete, evaluate_model, infer,
+│   │                                 complete_and_validate, run_attacker, test_attacker
+│   ├── data/                         text_generator (corpus generation)
+│   ├── demo/                         demo_reward_function
+│   ├── downloads/                    download_best_attacker / _defender from MLflow
+│   └── plot_report_figures.py        regenerates the graphs in this README
+│
+├── tests/                            269 unit tests (pytest)
+├── docs/figures/                     report figures (PNG)
+└── README.md                         ← this file
 ```
+
+The reward logic lives in its **own neutral `src/reward/` package**. Earlier it sat inside
+`src/attacker/` and the defender imported *up* into the attacker package — a backwards
+dependency. Moving it out makes both agents depend only on shared, side-agnostic code.
 
 ---
 
-## 4. Components
+## 5. Design decisions: architecture & loss functions
 
-### 4.1 Lexicon and Parser
+*(Report requirement 1 — justification of the model architecture and loss function.)*
 
-**File:** `src/language/parsers.py`
+### 5.1 Why a decoder-only causal Transformer
 
-Parses `words.json` into typed Python dataclasses.
+The core task is **autoregressive generation**: produce / complete a sentence left-to-right.
+A GPT-style decoder-only Transformer is the canonical fit — it predicts the next token from
+all previous tokens under a causal mask. We deliberately kept it **small**:
 
-```python
-from src.language.parsers import LexiconParser
-
-nouns, verbs, adjectives = LexiconParser.parse("data/raw/word_centered_language/words.json")
-
-noun = nouns[0]
-print(noun.word)              # "MAN"
-print(noun.tag.tag)           # ["ALIVE", "HUMAN"]
-print(noun.axis.agency)       # 4
-print(noun.axis.physicality)  # 4
-
-verb = verbs[0]
-print(verb.word)              # "RUN"
-print(verb.tag.tag)           # ["PHYSICAL_ACTION", "LOCOMOTION"]
-print(verb.verb_argument.verb_to_subject_constraint)  # tag + axis constraint object
-print(verb.verb_argument.verb_to_object_constraint)   # None if intransitive
-```
-
----
-
-### 4.2 Context-Free Grammar
-
-**File:** `src/language/entities/cfg.py`
-
-Generates random grammatically and semantically valid sentences.
-
-```python
-from src.language.entities.cfg import CFG
-
-cfg = CFG.from_json(
-    "data/raw/word_centered_language/transition.json",
-    nouns=nouns, verbs=verbs, adjectives=adjectives,
-)
-
-skeleton = cfg.generate_skeleton()                    # ["NOUN", "VERB", "ADJ", "NOUN"]
-sentence = cfg.build_sentence_from_skeleton(skeleton) # "MAN CARRY SMALL CLOCK"
-```
-
-Semantic constraints are enforced at generation time — the CFG never produces an invalid sentence.
-
----
-
-### 4.3 CFG Validator
-
-**File:** `src/language/entities/cfg_validator.py`
-
-Validates any sentence string against all grammar and semantic rules.
-
-```python
-from src.language.entities.cfg_validator import CFGValidator
-
-validator = CFGValidator.from_cfg(cfg)
-
-result = validator.validate("FREE WOLF FALL")
-print(result.is_valid)  # True
-
-result = validator.validate("RIVER BURN")
-print(result.is_valid)  # False
-print(result.error)     # "Semantic constraint violated: Verb 'BURN' is incompatible with subject 'RIVER'"
-```
-
-Validation runs in three phases:
-
-1. **Unknown word check** — all tokens must exist in the lexicon
-2. **Skeleton check** — the POS sequence must match a derivable CFG pattern
-3. **Semantic check** — all subject/verb/object constraints must be satisfied
-
----
-
-### 4.4 Word Tokenizer
-
-**File:** `src/model/tokenizer.py`
-
-Word-level tokenizer built from a corpus file.
-
-| Token | ID | Meaning |
+| Hyperparameter | Value | Reason |
 |---|---|---|
-| `<PAD>` | 0 | Padding |
-| `<BOS>` | 1 | Beginning of sentence |
-| `<EOS>` | 2 | End of sentence |
-| `<UNK>` | 3 | Unknown word |
+| Layers | 4 | The language has 146 tokens and a shallow CFG; depth beyond this adds nothing. |
+| Embedding dim | 64 | Enough to separate 146 tokens + positions; small enough to train on CPU. |
+| Attention heads | 4 | head_dim = 16, a standard split. |
+| Context length | 32 | Longest valid sentences are well under 32 tokens. |
+| FFN dim | 256 | Conventional 4× expansion. |
+| Dropout | 0.1 | Light regularization; corpus is large relative to model. |
+| Weight tying | yes | Input embedding = output projection → fewer params, better generalization. |
+| **Total params** | **210,432** | Tiny, fast, hard to overfit a controlled language. |
+
+**Why identical attacker and defender.** Both are 210k-param MiniGPTs. Keeping them equal in
+capacity turns the experiment into a clean test of *training signal*: if the attacker wins, it
+is because its policy found exploits, not because it is a bigger model.
+
+**Why CFG masking on the attacker.** The attacker should not waste capacity re-learning grammar
+the `CFGStateTracker` already enforces. At each step, logits for grammar-illegal tokens are set
+to `−∞` before sampling, so the policy only ever distributes probability over *valid* moves and
+learns the one thing that matters: *which* valid prefix provokes a bad completion.
+
+### 5.2 Why two different loss functions
+
+This project has **two distinct learning problems**, and each needs the right objective.
+
+**(a) Defender pretraining → token-level cross-entropy.**
+Pretraining MiniGPT to speak the language is ordinary maximum-likelihood language modeling, so
+we use next-token cross-entropy with padding ignored:
 
 ```python
-from src.model.tokenizer import WordTokenizer
-
-tokenizer = WordTokenizer.from_corpus("data/raw/generated_texts/generated_corpus_10000.txt")
-# vocab_size = 146
-
-ids  = tokenizer.encode("MAN RUN", add_special=True)  # [1, 5, 8, 2]
-text = tokenizer.decode(ids)                           # "MAN RUN"
+criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id)
+loss = criterion(logits.reshape(-1, V), targets.reshape(-1))
 ```
 
----
+`ignore_index=pad_id` keeps padding tokens from contributing gradient. Cross-entropy is the
+standard, well-behaved MLE objective for autoregressive LMs — nothing exotic is warranted.
 
-### 4.5 MiniGPT Defender
+**(b) Adversarial training → REINFORCE policy gradient.**
+The adversarial reward depends on (i) the **CFG validator’s** binary verdict and (ii)
+**discrete sampled tokens**. Neither is differentiable — you cannot backpropagate through a
+hard validity check or through `argmax`/sampling. So we estimate the gradient of *expected
+reward* with the REINFORCE (score-function) estimator:
 
-**File:** `src/model/transformer.py`
-
-A decoder-only causal Transformer trained to generate valid sentences in the synthetic language.
-
-| Parameter | Value |
-|---|---|
-| Architecture | Decoder-only causal Transformer |
-| Layers | 4 |
-| Embedding dim | 64 |
-| Attention heads | 4 |
-| Context length | 32 tokens |
-| Vocabulary size | 146 |
-| Total parameters | 210,432 |
-| Training corpus | 10,000 sentences |
-| Trained epochs | 32 |
-| Final training loss | 2.7944 |
-
-```python
-import torch
-from src.model.transformer import MiniGPT
-
-model = MiniGPT(vocab_size=146, pad_id=0)
-ckpt  = torch.load("data/models/minigpt_corpus10000.pt", map_location="cpu", weights_only=False)
-model.load_state_dict(ckpt["model_state"])
-model.eval()
-
-# Free generation
-ids = model.generate(bos_id=1, eos_id=2, max_new_tokens=15, temperature=0.8)
-
-# Prefix completion
-x      = torch.tensor([[1, 5, 8]])  # BOS MAN RUN
-logits = model(x)                   # shape (1, 3, 146)
 ```
-
----
-
-### 4.6 CFG State Tracker
-
-**File:** `src/attacker/cfg_state_tracker.py`
-
-A grammar-aware finite state machine that tracks exactly which words are valid at every generation step. Used by the attacker to guarantee every generated prefix is a valid partial sentence.
-
-**States:**
-
-| State | Meaning |
-|---|---|
-| `SUBJECT_START` | Beginning — expect adjective or noun |
-| `SUBJECT_AFTER_ADJ` | After subject adjective — expect noun only |
-| `AFTER_SUBJECT` | Subject placed — expect verb |
-| `AFTER_INTRANS_VERB` | Intransitive verb placed — can end or chain another verb |
-| `OBJECT_START` | After transitive verb — expect adjective or noun |
-| `OBJECT_AFTER_ADJ1` | After 1st object adjective — expect adjective or noun |
-| `OBJECT_AFTER_ADJ2` | After 2nd object adjective — expect noun only |
-| `AFTER_OBJECT` | Object placed — can add another verb or end |
-
-```python
-from src.attacker.cfg_state_tracker import CFGStateTracker
-
-tracker = CFGStateTracker(nouns, verbs, adjectives)
-tracker.reset()
-
-words, can_end = tracker.valid_next_words()  # valid next tokens + whether EOS is allowed
-ok = tracker.step("MAN")                     # True -- advances state
-ok = tracker.step("CARRY")                   # True
-print(tracker.sentence())                    # "MAN CARRY"
-print(tracker.can_end)                       # True
-```
-
-Key constraint: after a bare intransitive verb the tracker offers all verbs valid for the subject (`VERB_TERM -> VERB VERB_TERM`), plus `can_end=True`. After a transitive verb the object must be completed first — only then can the next verb chain start.
-
----
-
-### 4.7 Attacker Transformer
-
-**File:** `src/attacker/attacker.py`
-
-Identical architecture to MiniGPT (210,432 parameters). At each generation step, logits for all CFG-invalid tokens are masked to `-inf` before sampling — guaranteeing every generated prefix is a valid partial sentence according to the CFG rules.
-
-```python
-from src.attacker.attacker import AttackerTransformer
-
-attacker = AttackerTransformer(vocab_size=146, pad_id=0)
-
-# Generate a CFG-valid prefix
-ids, words = attacker.generate_prefix(
-    bos_id=tokenizer.bos_id,
-    eos_id=tokenizer.eos_id,
-    cfg_tracker=tracker,
-    token_to_id=tokenizer.token_to_id,
-    id_to_token=tokenizer.id_to_token,
-    max_tokens=6,
-    temperature=1.0,
-)
-# words -> e.g. ["STRONG", "MAN", "CARRY"]
-
-# RL-ready: returns log-probabilities with gradients attached
-ids, words, log_probs = attacker.generate_prefix_with_log_probs(...)
-
-# REINFORCE policy gradient loss
-loss = -(log_probs * reward).sum()
+advantage = R − baseline                  # baseline = EMA of recent rewards
+loss      = −(advantage × Σ log π(aₜ))     # sum of log-probs of the sampled tokens
 loss.backward()
 ```
 
----
+Design choices inside REINFORCE, and why:
 
-### 4.8 Reward Simple
+| Choice | Why |
+|---|---|
+| **EMA baseline** | REINFORCE gradients are high-variance. Subtracting a running mean of reward (`baseline_alpha = 0.05`) centers the advantage and stabilizes learning without a learned critic. |
+| **Entropy bonus** (`−β·H`) | Pure REINFORCE collapses onto a single high-reward prefix (mode collapse). An entropy term keeps the policy spread out. |
+| **Gradient clipping** (1.0) | Caps occasional huge policy-gradient steps. |
+| **Defender reward = −attacker reward** | A zero-sum framing: the same scalar trains both sides, so they optimize directly against each other. |
 
-**File:** `src/attacker/reward.py`
+### 5.3 The reward function (the heart of the system)
 
-A lightweight reward module that returns a scalar signal plus a basic breakdown.
-
-```python
-from src.attacker.reward import RewardComputer, RewardConfig
-
-rc = RewardComputer(nouns, verbs, adjectives, config=RewardConfig())
-
-result = rc.compute(
-    prefix_words=["MAN", "CARRY"],
-    suffix_words=["ALGORITHM", "SPREAD"],
-    is_valid=False,
-    cfg_error="Semantic constraint violated",
-)
-
-print(result.reward)          # scalar e.g. 1.22
-print(result.grammar_reward)  # 1.0 (invalid) or 0.0 (valid)
-print(result.tag_distance)    # Jaccard distance of combined tag sets
-print(result.axis_distance)   # cosine distance of mean axis vectors
-print(result.topic_mismatch)  # combined mismatch score
-print(result.summary())       # human-readable breakdown
-```
-
-**Formula:** `R = 1.0 * grammar_reward + 0.5 * topic_mismatch`
-
----
-
-### 4.9 Reward Function Structured
-
-**File:** `src/attacker/reward_function.py`
-
-The full structured reward module. Separates feature extraction, distance computation, and reward calculation into distinct classes. Tracks noun, verb, and adjective tags independently to give fine-grained visibility into where semantic drift occurred.
-
-#### Sub-components
-
-**`FeatureExtractor`** classifies each word by POS and extracts:
-- `noun_tags` — tag set from all nouns in this segment
-- `verb_tags` — tag set from all verbs
-- `adjective_tags` — tag set from all adjectives
-- `all_tags` — union of all three tag sets
-- `mean_axis` — elementwise mean of all word axis vectors
-
-**`DistanceCalculator`** computes pairwise distances between prefix and suffix features:
-- `noun_tag_dist` — Jaccard distance of noun tag sets (0 = identical, 1 = disjoint)
-- `verb_tag_dist` — Jaccard distance of verb tag sets
-- `adjective_tag_dist` — Jaccard distance of adjective tag sets
-- `tag_mismatch` — mean of the three POS distances
-- `axis_distance` — cosine distance of mean axis vectors (0 = same direction, 1 = opposite)
-
-**`RewardFunction`** orchestrates everything:
-
-```python
-from src.attacker.reward_function import RewardFunction, RewardWeights
-
-rf = RewardFunction(nouns, verbs, adjectives, weights=RewardWeights())
-
-# Split sentence into attacker prefix and defender suffix
-prefix_part, suffix_part = rf.split_sentence(full_words, prefix_words)
-
-# Compute structured reward
-out = rf.compute(
-    prefix_words=prefix_part,
-    suffix_words=suffix_part,
-    full_sentence="STRONG MAN CARRY ALGORITHM SPREAD",
-    is_valid=False,
-    cfg_error="Semantic constraint violated: ...",
-)
-
-print(out.reward)                        # final scalar
-print(out.distances.noun_tag_dist)       # how different the nouns are
-print(out.distances.verb_tag_dist)       # how different the verbs are
-print(out.distances.axis_distance)       # how different the axis profiles are
-print(out.prefix.noun_tags)              # {"ALIVE", "HUMAN"}
-print(out.suffix.noun_tags)              # {"ABSTRACT", "SYSTEM"}
-print(out.summary())                     # full human-readable breakdown
-```
-
-#### Reward formula
+A single structured reward scores every exchange. It encodes a **three-level priority**:
+grammar failure ≫ topic mismatch ≫ topic drift.
 
 ```
-R = w_grammar * grammar_reward    (1.0 if CFG-invalid, 0.0 if valid)
-  + w_tag     * tag_mismatch      (mean of 3 per-POS Jaccard distances)
-  + w_axis    * axis_distance     (cosine distance of mean axis vectors)
+R = w_grammar · grammar_reward      # 1.0 if CFG-invalid, else 0.0
+  + w_tag     · tag_mismatch        # mean of 3 per-POS Jaccard distances (noun/verb/adj)
+  + w_axis    · axis_distance       # cosine distance of mean 4-D axis vectors
 ```
-
-#### Default weights
 
 | Weight | Value | Role |
 |---|---|---|
-| `w_grammar` | 1.0 | Grammar failure dominates |
-| `w_tag` | 0.30 | Tag mismatch — medium contribution |
-| `w_axis` | 0.20 | Axis drift — medium contribution |
-| Max reward | 1.50 | All components simultaneously = 1.0 |
+| `w_grammar` | 1.0 | Grammar failure dominates — the biggest win for the attacker. |
+| `w_tag` | 0.30 | Tag mismatch — medium signal. |
+| `w_axis` | 0.20 | Axis drift — medium signal. |
+| **max R** | **1.50** | all three components = 1.0 simultaneously. |
 
-#### Three reward levels
+**Why per-POS tag distances** (noun / verb / adjective tracked separately rather than one pooled
+set): it tells you *which* grammatical slot drifted, which is far more actionable both for
+analysis and as a learning signal. **Why a continuous axis term on top of discrete tags:** two
+words can share zero tags yet be semantically near (or vice-versa); the cosine distance on
+axis vectors captures graded drift that the Jaccard term alone misses. This shaping gives the
+attacker a smooth gradient to climb even on episodes where it has not yet achieved a full
+grammar failure.
 
-| Case | Grammar | Tag | Axis | Total |
+Worked reward levels:
+
+| Case | grammar | tag | axis | total R |
 |---|---|---|---|---|
-| Grammar failure | 1.00 | ~0.20 | ~0.01 | ~1.21 |
-| Topic mismatch | 0.00 | ~0.20 | ~0.08 | ~0.28 |
-| Topic consistent | 0.00 | ~0.10 | ~0.00 | ~0.10 |
+| Grammar failure | 1.00 | ~0.20 | ~0.01 | **~1.21** |
+| Topic mismatch | 0.00 | ~0.20 | ~0.08 | **~0.28** |
+| Topic consistent | 0.00 | ~0.10 | ~0.00 | **~0.10** |
 
 ---
 
-### 4.10 Attack Pipeline
+## 6. Training: how it went, with graphs
 
-**File:** `scripts/attack_and_complete.py`
+*(Report requirement 2 — the training process, illustrated.)*
 
-Ties all components together into a single loop.
+All figures below are generated directly from the CSV logs in `logs/` by
+`python scripts/plot_report_figures.py`.
 
-```
-for each iteration:
-  Step 1: Attacker generates a CFG-valid prefix   (CFGStateTracker enforces grammar)
-  Step 2: MiniGPT completes the prefix             (defender)
-  Step 3: CFGValidator checks the full sentence    (valid or invalid + error)
-  Step 4: RewardFunction scores the result         (structured reward breakdown)
-```
+### 6.1 Defender pretraining (cross-entropy)
 
-```python
-from scripts.attack_and_complete import AttackPipeline
+MiniGPT trained on the 10,000-sentence corpus for 32 epochs (AdamW, lr 3e-4, batch 64,
+grad-clip 1.0). Loss falls sharply in the first ~5 epochs, then settles into a smooth decline —
+the expected MLE curve, with no sign of divergence or overfitting.
 
-pipeline = AttackPipeline(
-    max_prefix_tokens=6,
-    max_completion_tokens=15,
-    attacker_temperature=1.0,
-    defender_temperature=0.8,
-)
+![MiniGPT training loss](docs/figures/fig_minigpt_loss.png)
 
-pipeline.run(n=100)
-```
+- Loss: **4.095 → 2.819** (start → epoch 32); best team checkpoint reached **2.79**.
+- Outcome: the defender reliably generates grammatical, on-topic sentences — a competent
+  baseline opponent for the attacker.
 
-### Before vs after REINFORCE training
+### 6.2 Attacker REINFORCE (vs. frozen defender)
 
-The attacker policy was trained with REINFORCE (20,000 episodes, EMA baseline, entropy bonus `0.05`) against the frozen defender (`minigpt_corpus10000.pt`, loss 2.80). Both benchmarks use the **same defender, same temperatures, same `min_completion_tokens=1` rule** (the defender must add at least one new word — it cannot just echo the prefix), and **both at `n=100,000`** for a tight, apples-to-apples comparison.
+The attacker policy was trained with REINFORCE against the frozen defender. The two curves
+below are the same run (2,000 episodes, EMA baseline): as the attacker’s **reward rises**, the
+defender’s **valid-completion rate collapses** — direct evidence the attacker is learning to
+break the defender.
 
-| Metric | Before training (untrained attacker) | After training (`attacker_best.pt`) | Δ |
+![Attacker REINFORCE](docs/figures/fig_attacker_reward.png)
+
+- Avg reward: **0.56 → 1.26**; grammar-failure rate: **0.32 → 1.00**.
+- Clean crossover near episode ~700, where the attacker discovers prefix shapes that force a
+  semantic violation almost every time.
+- The team’s longer 20k-episode run (`attacker_best.pt`) reached **avg reward ≈ 1.31**.
+
+### 6.3 Defender REINFORCE fine-tuning (vs. frozen attacker)
+
+We then fine-tuned the defender with REINFORCE (reward = −attacker reward) for 10,000 episodes.
+Crucially, **30% of prefixes were drawn at random** from the CFG rather than from the
+mode-collapsed attacker, so the defender generalizes instead of memorizing one exploit.
+
+![Defender RL fine-tuning](docs/figures/fig_defender_rl.png)
+
+- Defender valid rate: **~76% → ~96%** and holds; defender reward rises from ~−0.55 to ~−0.34.
+- The fine-tuned defender repairs the specific weaknesses the attacker exploited while staying
+  general across the whole grammar.
+
+### 6.4 Adversarial co-training (alternating)
+
+Finally, both sides train in alternating phases (`scripts/train/train_adversarial.py`):
+each round = X attacker episodes (defender frozen) then X defender episodes (attacker frozen),
+followed by a frozen head-to-head evaluation. The graph shows the **arms race**: defender
+validity (green) dips during every attacker phase and recovers during every defender phase.
+
+![Adversarial co-training](docs/figures/fig_cotraining.png)
+
+- The deep, narrow spikes are moments where the attacker briefly discovers a fresh exploit
+  before the defender adapts in the following phase.
+- Lessons baked in: attacker phases use an **entropy bonus** (anti–mode-collapse); defender
+  phases **mix random prefixes** (anti-forgetting); the state tracker guarantees every prefix
+  is answerable so neither side can “win” via dead-ends.
+
+> **Known dynamic (honest note).** Co-training validity is *jumpy* — it starts high and
+> oscillates hard within each round. That is inherent to alternating REINFORCE with a frozen
+> opponent: the training side over-optimizes against a stationary target. We dampen it with the
+> entropy bonus, random-prefix mixing, and an **early-stop** that ends an attacker phase once
+> its rolling validity drops below a threshold (so the defender can respond sooner). Smoother
+> curves would need a smaller LR or true simultaneous updates.
+
+---
+
+## 7. Evaluation: tasks, rationale & results
+
+*(Report requirement 3 — what we evaluate, why, and the numbers.)*
+
+**Why these metrics.** The synthetic language was chosen precisely so that **validity is a
+ground-truth label**: the `CFGValidator` gives an exact valid/invalid verdict for any sentence,
+with no annotation. So *validity rate* is our primary, unambiguous metric, and *average reward*
+is the secondary metric because it captures graded semantic drift even when a sentence is
+technically valid. All head-to-head evaluations **freeze both models** so we measure policy
+quality, not a moving target.
+
+### Task 1 — Defender language-modeling quality
+*Question:* does the pretrained defender actually speak the language?
+*Metric:* training cross-entropy + CFG validity of free generations.
+*Result:* loss **2.82**; free samples are consistently grammatical and on-topic.
+
+### Task 2 — Attack success (before vs. after REINFORCE)
+*Question:* does REINFORCE make the attacker measurably better at breaking the defender?
+*Metric:* defender valid-rate and attacker avg-reward against the **same** frozen defender,
+same temperatures, same `min_completion_tokens=1` rule, at **n = 100,000** episodes.
+
+| Metric | Untrained attacker | Trained `attacker_best.pt` | Δ |
 |---|---|---|---|
-| VALID completions | 44,898 / 100,000 (**44.9%**) | 5,295 / 100,000 (**5.3%**) | **−39.6 pts** |
-| INVALID completions | 55,102 / 100,000 (**55.1%**) | 94,705 / 100,000 (**94.7%**) | **+39.6 pts** |
-| Avg reward | **0.8143** | **1.3122** | **+0.50 (≈1.6×)** |
+| VALID completions | 44,898 / 100k (**44.9%**) | 5,295 / 100k (**5.3%**) | **−39.6 pts** |
+| INVALID completions | 55,102 / 100k (**55.1%**) | 94,705 / 100k (**94.7%**) | **+39.6 pts** |
+| Avg reward | **0.814** | **1.312** | **+0.50 (≈1.6×)** |
 
-**What changed.** An untrained attacker emits roughly uniform CFG-legal prefixes; the defender still produces semantically valid completions ~45% of the time. After 20k REINFORCE episodes, the attacker concentrates probability on short prefix shapes (`FAMOUS HOME`, `CONNECTED HOME`, etc.) that consistently push the defender into a verb that violates semantic constraints on the subject. The grammar-failure reward (`+1.0 × w_grammar`) now fires on ~95% of episodes, and the chosen prefix shape also maximises noun/verb/adjective tag distance — lifting `avg_reward` from 0.81 to 1.31.
+*Interpretation:* an untrained attacker emits ~uniform legal prefixes and the defender survives
+~45% of the time; after training, the attacker concentrates on prefix shapes that force a
+semantic violation ~95% of the time. Logged to DagsHub under `AttackBenchmark`.
 
-Both runs are logged to DagsHub MLflow under the `AttackBenchmark` experiment for direct comparison.
+### Task 3 — Defender robustness after RL fine-tuning
+*Question:* can the defender be hardened against the trained attacker without forgetting the
+rest of the language?
+*Metric:* valid-rate vs. attacker prefixes **and** random CFG prefixes.
+*Result:* valid-rate **~76% → ~96%**; generalization confirmed by the random-prefix mix
+(validity stays high on prefixes the attacker never uses).
 
-**Note on diversity.** The trained policy concentrates on a small set of high-reward attack templates — a known REINFORCE mode-collapse signature that the `0.05` entropy bonus mitigates but doesn't eliminate. For more diverse attacks, raise the entropy coefficient or add a novelty bonus to the reward.
-
-**Reproduce:**
-
-```powershell
-# Before training (untrained attacker baseline)
-python scripts/attack_and_complete.py --n 100000 --mlflow
-
-# After training
-python scripts/attack_and_complete.py --n 100000 --attacker-ckpt data/models/attacker_best.pt --mlflow
-```
-
----
-
-## 5. Scripts
-
-| Script | Purpose |
-|---|---|
-| `scripts/train/train_model.py` | Train MiniGPT on a corpus with MLflow logging |
-| `scripts/train/train_attacker.py` | Train the attacker with REINFORCE policy gradient (frozen defender) |
-| `scripts/attack_and_complete.py` | Run the full adversarial attack pipeline |
-| `scripts/demo_reward_function.py` | Step-by-step walkthrough of the reward function |
-| `scripts/infer.py` | Interactive MiniGPT sentence completion |
-| `scripts/complete_and_validate.py` | Complete a prefix and validate the result |
-| `scripts/run_attacker.py` | Generate and display attacker-generated prefixes |
-| `scripts/test_attacker.py` | Manual labelled test script for attacker components |
-| `scripts/validate_sentence.py` | Validate a single sentence against the CFG |
+### Task 4 — Co-training dynamics
+*Question:* what happens when both sides adapt?
+*Metric:* per-round frozen head-to-head valid-rate.
+*Result:* an oscillating equilibrium; at round *ends* (after the defender phase) the defender
+holds **~95–99%** validity, i.e. it stays ahead across rounds while the attacker keeps probing.
 
 ---
 
-## 6. Tests
+## 8. Problems we hit and how we solved them
 
-All tests use `unittest` and are compatible with `pytest`. Each component has its own dedicated file.
+| # | Problem | Root cause | Fix |
+|---|---|---|---|
+| 1 | **Attacker mode collapse** — policy converged to a single prefix (`FAMOUS HOME`, `CITY …`). | Pure REINFORCE rewards exploitation of the single best exploit. | Added an **entropy bonus** to the attacker loss; in co-training, **early-stop** an attacker phase once validity collapses. |
+| 2 | **Unanswerable dead-end prefixes** — 11 nouns (CITY, HOME, FOREST, …) have *zero* compatible verbs, so the defender *cannot* complete them validly. | The grammar allows a bare subject that no verb accepts. | `CFGStateTracker._precompute_viability()` prunes subjects/adjectives that lead to dead-ends, so every offered prefix is **completable**. |
+| 3 | **Defender forgetting** during RL — it overfit to the collapsed attacker’s one prefix. | Training only on a degenerate prefix distribution. | **Mix 30% random CFG prefixes** (`--mix-random 0.3`) so the defender stays general (verified: validity high on unseen prefixes). |
+| 4 | **Grammar change** — added `VERB_TERM → VERB VERB_TERM` (verb chaining, e.g. `MAN RUN FALL`). | New rule invalidated the corpus, the trained defender, and the state machine. | Regenerated the corpus, **retrained** the defender, and updated `CFGStateTracker` (new `AFTER_INTRANS_VERB` state offering verbs). |
+| 5 | **DagsHub 401 auth** + **DagsHub downtime**. | DagsHub needs the token as **both** MLflow username *and* password; server occasionally unreachable. | Send token as user+pass; on any connection error, **fall back to local MLflow** (`mlruns/`). |
+| 6 | **Windows crashes** — OpenMP `libiomp5md.dll` conflict and `cp1252` Unicode errors. | PyTorch OMP double-load; console can’t encode special glyphs. | Set `KMP_DUPLICATE_LIB_OK=TRUE` in every entry script; replace non-ASCII output with ASCII. |
+| 7 | **Messy architecture** — reward code inside `src/attacker/`, defender importing *up* into attacker; duplicate `train_model.py`; flat `scripts/`. | Organic growth. | Extracted **`src/reward/`** shared package; grouped scripts into `train/ eval/ data/ demo/ downloads/`; deleted the duplicate. All 269 tests still pass. |
 
-| File | Tests | What it covers |
+---
+
+## 9. Component reference
+
+| Component | File | Role |
 |---|---|---|
-| `test_lexicon_parser.py` | 12 | Word counts, field presence, axis range, uppercase |
-| `test_cfg.py` | 7 | Skeleton generation, sentence building, POS tokens |
-| `test_cfg_validator.py` | 14 | Valid sentences, invalid sentences, corpus batch, repr |
-| `test_tokenizer.py` | 9 | Encode, decode, BOS/EOS, UNK, roundtrip |
-| `test_minigpt.py` | 5 | Forward pass shape, generation, temperature |
-| `test_cfg_state_tracker.py` | 17 | State transitions, valid words, invalid steps, reset |
-| `test_attacker_transformer.py` | 9 | CFG-masked generation, log-prob gradients |
-| `test_reward_computer.py` | 22 | Grammar component, mismatch component, TopicProfile |
-| `test_reward_function.py` | 54 | FeatureExtractor, DistanceCalculator, split, compute, weights |
-| `test_train_attacker.py` |  4 | REINFORCE loop smoke: gradient flow, optimizer steps, EMA baseline |
-| **Total** | **155** | **all passing** |
+| **LexiconParser** | `src/language/parsers.py` | Parse `words.json` into typed dataclasses. |
+| **CFG** | `src/language/entities/cfg.py` | Generate grammatical+semantic sentences. |
+| **CFGValidator** | `src/language/entities/cfg_validator.py` | 3-phase validation (unknown → skeleton → semantics). |
+| **WordTokenizer** | `src/model/tokenizer.py` | Word-level tokenizer; `<PAD>=0 <BOS>=1 <EOS>=2 <UNK>=3`; vocab 146. |
+| **MiniGPT** | `src/model/transformer.py` | 210k-param decoder-only Transformer (defender). |
+| **CFGStateTracker** | `src/attacker/cfg_state_tracker.py` | Grammar FSM; exposes valid next tokens + viability pruning. |
+| **AttackerTransformer** | `src/attacker/attacker.py` | Same arch as MiniGPT, with CFG-masked decoding + log-prob RL hooks. |
+| **RewardComputer** | `src/reward/reward_computer.py` | Simple scalar reward (`grammar + topic_mismatch`). |
+| **RewardFunction** | `src/reward/reward_function.py` | Structured per-POS reward (attacker view). |
+| **DefenderRewardFunction** | `src/reward/defender_reward.py` | Inverted reward (defender view). |
 
-Run all tests:
+---
+
+## 10. How to run / reproduce
+
+> On Windows, prefix any command with `$env:KMP_DUPLICATE_LIB_OK="TRUE"` (the scripts also set
+> this in code).
 
 ```powershell
-python -m pytest tests/ --ignore=tests/test_suite.py -v
+# 1. Pretrain the defender (cross-entropy)
+python scripts/train/train_model.py --corpus 10000 --epochs 32
+
+# 2. Train the attacker (REINFORCE, frozen defender)
+python scripts/train/train_attacker.py --episodes 2000               # local
+python scripts/train/train_attacker.py --episodes 20000 --mlflow     # tracked
+
+# 3. Fine-tune the defender (REINFORCE, frozen attacker)
+python scripts/train/train_defender_rl.py --episodes 10000 --mix-random 0.3 --mlflow
+
+# 4. Adversarial co-training (alternating)
+python scripts/train/train_adversarial.py --rounds 10 -x 1000 --mlflow
+
+# Evaluate / inspect
+python scripts/eval/attack_and_complete.py --n 100000 --mlflow       # benchmark
+python scripts/eval/attack_and_complete.py --n 10 --verbose          # reward breakdown
+python scripts/eval/infer.py                                         # interactive completion
+python scripts/eval/validate_sentence.py "FREE WOLF FALL"            # validate one sentence
+python scripts/demo/demo_reward_function.py                          # step-by-step reward demo
+
+# Regenerate the report figures
+python scripts/plot_report_figures.py
 ```
 
-Run a single test class:
+Key attacker/defender flags: `--lr`, `--max-prefix`, `--atk-temp`/`--def-temp`,
+`--w-grammar`/`--w-tag`/`--w-axis`, `--baseline-alpha`, `--entropy-coef`, `--mix-random`,
+`--window`, `--seed`.
+
+---
+
+## 11. Experiment tracking (MLflow + DagsHub)
+
+Training logs to **MLflow**, backed by a shared **DagsHub** server so the whole team sees one
+experiment view; if DagsHub is unreachable it transparently falls back to local `mlruns/`.
+
+**Setup.** Copy the template and fill in your credentials (the file is git-ignored):
 
 ```powershell
-python -m pytest tests/test_reward_function.py::TestFeatureExtractor -v
+cp config.example.py config.py
+# then edit:
+#   DAGSHUB_REPO_OWNER = "your-username"
+#   DAGSHUB_REPO_NAME  = "nlp-adversarial-defense"
+#   DAGSHUB_TOKEN      = "your-api-token"   # from https://dagshub.com/user/settings/tokens
+```
+
+Environment variables (`DAGSHUB_REPO_OWNER`, `DAGSHUB_REPO_NAME`, `DAGSHUB_TOKEN`) work too and
+take over if `config.py` is absent. Add `--mlflow` to any training command to enable tracking.
+
+**Experiments:** `MiniGPT` (pretraining) · `AttackerREINFORCE` · `DefenderRL` ·
+`AdversarialCoTraining` · `AttackBenchmark`. Each run logs params (lr, temps, weights, seed,
+param_count), metrics (loss / reward / valid-rate / baseline), and artifacts (checkpoints,
+tokenizer, episode CSVs).
+
+**Pull the best team models:**
+
+```powershell
+python scripts/downloads/download_best_attacker.py   # → data/models/from_mlflow/
+python scripts/downloads/download_best_defender.py
+```
+
+> DagsHub auth quirk: the access token must be sent as **both** the MLflow username **and**
+> password — passing the repo owner as the username returns 401. The download scripts handle
+> this automatically.
+
+---
+
+## 12. Tests
+
+269 unit tests (`unittest`, pytest-compatible), one file per component — lexicon parser, CFG,
+CFG validator, tokenizer, MiniGPT, state tracker, attacker, all three reward modules, and
+REINFORCE smoke tests for both attacker and defender training loops.
+
+```powershell
+python -m pytest tests/ -q                                  # all
+python -m pytest tests/test_reward_function.py -v           # one file
 ```
 
 ---
 
-## 7. Setup and Installation
-
-### Requirements
+## 13. Setup & installation
 
 ```
-Python >= 3.10
-torch
-mlflow
-dagshub
-pytest
+Python ≥ 3.10
+torch · mlflow · dagshub · pandas · matplotlib · pytest
 ```
-
-Install dependencies:
 
 ```powershell
-pip install torch mlflow dagshub pytest
+pip install torch mlflow dagshub pandas matplotlib pytest
+# or: conda env create -f environment.yml
 ```
 
-### Windows — OpenMP conflict
-
-On Windows, PyTorch may raise:
-
-```
-OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized.
-```
-
-Fix by setting the environment variable before running any script:
+**Windows OpenMP fix** (also set in-code by every entry script):
 
 ```powershell
 $env:KMP_DUPLICATE_LIB_OK="TRUE"
 ```
-
-All scripts also set this automatically in code:
-
-```python
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-```
-
----
-
-## 8. How to Run
-
-### Train MiniGPT
-
-```powershell
-$env:KMP_DUPLICATE_LIB_OK="TRUE"
-python scripts/train/train_model.py
-```
-
-### Train the attacker (REINFORCE)
-
-Updates the attacker's policy to maximise reward against the *frozen* defender:
-
-```
-loss = -(reward - baseline) * sum(log_probs)
-```
-
-```powershell
-$env:KMP_DUPLICATE_LIB_OK="TRUE"
-
-# 2000 episodes, local logging only
-python scripts/train/train_attacker.py --episodes 2000
-
-# Longer run with MLflow / DagsHub tracking
-python scripts/train/train_attacker.py --episodes 10000 --mlflow
-```
-
-What it does each episode:
-1. Attacker samples a CFG-valid prefix (gradients tracked through `log_probs`).
-2. Frozen MiniGPT completes the prefix.
-3. `CFGValidator` checks the full sentence; `RewardFunction` returns a scalar.
-4. REINFORCE loss is computed with an EMA baseline for variance reduction.
-5. Gradients flow only through the attacker; the defender is fully frozen.
-
-Outputs:
-- `data/models/attacker_best.pt`  — best rolling-avg-reward checkpoint
-- `data/models/attacker_final.pt` — final-episode checkpoint
-- `logs/attacker_episodes_seed{S}.csv` — per-episode prefix / completion / reward
-- `logs/train_attacker_seed{S}.log` — training log
-- MLflow metrics (if `--mlflow`): `avg_reward`, `grammar_fail_rate`, `baseline`, `avg_loss`
-
-Useful flags:
-
-| Flag | Default | Meaning |
-|---|---|---|
-| `--episodes` | 2000 | Number of REINFORCE updates |
-| `--lr` | 3e-4 | AdamW learning rate |
-| `--max-prefix` | 6 | Max attacker prefix length |
-| `--atk-temp` | 1.0 | Attacker sampling temperature |
-| `--def-temp` | 0.8 | Defender sampling temperature |
-| `--w-grammar` / `--w-tag` / `--w-axis` | 1.0 / 0.30 / 0.20 | Reward component weights |
-| `--baseline-alpha` | 0.05 | EMA smoothing rate for the reward baseline |
-| `--entropy-coef` | 0.0 | Optional entropy bonus (encourage exploration) |
-| `--window` | 100 | Rolling window for best-checkpoint averaging |
-
-### Complete a sentence interactively
-
-```powershell
-python scripts/infer.py
-```
-
-### Validate a sentence
-
-```powershell
-python scripts/validate_sentence.py "FREE WOLF FALL"
-```
-
-### Generate attacker prefixes
-
-```powershell
-python scripts/run_attacker.py --n 10 --max-tokens 6 --temperature 1.0
-```
-
-### Run the full attack pipeline
-
-```powershell
-# 100 iterations, compact output
-$env:KMP_DUPLICATE_LIB_OK="TRUE"
-python scripts/attack_and_complete.py --n 100
-
-# 10 iterations with full reward breakdown per sentence
-python scripts/attack_and_complete.py --n 10 --verbose
-```
-
-### Demo the reward function (step-by-step)
-
-```powershell
-python scripts/demo_reward_function.py
-```
-
-### Run all tests
-
-```powershell
-python -m pytest tests/ --ignore=tests/test_suite.py -v
-```
-
----
-
-## 9. Experiment Tracking
-
-The training script logs to **DagsHub** via **MLflow**. All team members share one experiment view.
-
-Configure credentials in `config.py`:
-
-```python
-DAGSHUB_USERNAME    = "your-username"
-DAGSHUB_TOKEN       = "your-token"
-DAGSHUB_REPO_NAME   = "your-repo-name"
-MLFLOW_TRACKING_URI = "https://dagshub.com/your-username/your-repo-name.mlflow"
-```
-
-Each training run logs:
-
-| Metric | Description |
-|---|---|
-| `train_loss` | Loss per epoch |
-| `best_loss` | Best loss seen so far |
-| `epoch` | Current epoch number |
-
-Parameters logged per run: `vocab_size`, `embed_dim`, `n_heads`, `n_layers`, `context_len`, `corpus`
-
----
-
-## 10. Architecture Diagram
-
-```
-+----------------------+       CFG-valid prefix        +----------------------+
-|                      |  ---------------------------> |                      |
-|  AttackerTransformer |                               |  MiniGPT (Defender)  |
-|    210k parameters   |                               |    210k parameters   |
-|                      |  <--------------------------- |                      |
-+----------------------+       completed sentence       +----------------------+
-         |                                                        |
-         |                                                        |
-         v                                                        v
-+----------------------+                              +----------------------+
-|   CFGStateTracker    |                              |    CFGValidator      |
-|   (grammar FSM)      |                              |                      |
-|                      |                              |  Phase 1: unknown    |
-|   at each step:      |                              |  Phase 2: skeleton   |
-|   filters valid      |                              |  Phase 3: semantics  |
-|   next tokens        |                              +----------------------+
-+----------------------+                                        |
-                                                   valid / invalid + error msg
-                                                                |
-                                                                v
-                                               +---------------------------------+
-                                               |       RewardFunction            |
-                                               |                                 |
-                                               |  split_sentence                 |
-                                               |    prefix | suffix              |
-                                               |                                 |
-                                               |  FeatureExtractor               |
-                                               |    noun_tags  verb_tags         |
-                                               |    adj_tags   mean_axis         |
-                                               |                                 |
-                                               |  DistanceCalculator             |
-                                               |    noun_tag_dist                |
-                                               |    verb_tag_dist                |
-                                               |    adj_tag_dist                 |
-                                               |    axis_distance                |
-                                               |                                 |
-                                               |  R = w_grammar * grammar_fail   |
-                                               |    + w_tag     * tag_mismatch   |
-                                               |    + w_axis    * axis_distance  |
-                                               +---------------------------------+
-                                                                |
-                                                          scalar reward
-                                                         (RL-ready signal)
-                                                                |
-                                                                v
-                                               +---------------------------------+
-                                               |     Future: Attacker Training   |
-                                               |                                 |
-                                               |  REINFORCE policy gradient:     |
-                                               |  loss = -(log_probs * R).sum()  |
-                                               |  loss.backward()                |
-                                               +---------------------------------+
-```
-
----
-
-## 11. Key Design Decisions
-
-**Why a synthetic language?**
-Full control over grammar and semantics means validity is binary and objectively measurable. There is no ambiguity, no annotation cost, and no pre-trained resources required.
-
-**Why CFG masking in the attacker?**
-The attacker should never waste model capacity learning basic grammar rules — the state tracker enforces validity deterministically at every step. The model only learns which valid prefixes lead to high reward.
-
-**Why per-POS tag distances?**
-Aggregating all tags into a single set hides where drift occurred. Separating noun, verb, and adjective tag distances tells you exactly which grammatical slot diverged — actionable information for analysing and training the attacker.
-
-**Why RL-ready log-probs?**
-`generate_prefix_with_log_probs()` keeps gradients attached through `log_softmax` so a REINFORCE loss can be computed directly:
-
-```python
-loss = -(log_probs * reward).sum()
-loss.backward()
-```
-
-The architecture is ready for adversarial reinforcement learning without any structural changes.
-
-**Why the same architecture for attacker and defender?**
-Keeping both models identical in size and structure creates a fair benchmark. Any difference in performance is due to training signal, not model capacity.
