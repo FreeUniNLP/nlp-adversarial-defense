@@ -292,6 +292,25 @@ Worked reward levels:
 | Topic mismatch | 0.00 | ~0.20 | ~0.08 | **~0.28** |
 | Topic consistent | 0.00 | ~0.10 | ~0.00 | **~0.10** |
 
+### 5.4 Preventing vocabulary collapse during defender RL
+
+Pure REINFORCE on the defender creates a subtle failure mode: the policy discovers that a handful of "safe" verbs (e.g. `FALL`, `BURN`) reliably satisfy the reward, and concentrates all probability mass there. Generated text becomes repetitive (`FALL BURN FALL BURN`) even while remaining grammatically valid. Three layered mechanisms address this:
+
+**Repetition penalty (`--repetition-penalty`, inference-time).**
+Before sampling each token, logits for tokens already present in the current sequence are divided by a penalty factor (default `1.3`). This softly discourages repeating words without hard-blocking them — the model can still use a word twice if that is really the best continuation.
+
+**n-gram blocking (`--no-repeat-ngram-size 2`, inference-time).**
+Any token that would create a repeated bigram is set to `−∞` before sampling. For example, if `FALL BURN` has already appeared, `BURN` is forbidden after any subsequent `FALL`. This is a hard constraint rather than a soft penalty — it eliminates the most egregious word-loop patterns entirely.
+
+**SFT mixing — supervised anchor during RL (`--sft-coef`, most important).**
+At every RL update step, a supervised cross-entropy loss on a random mini-batch of real corpus sentences is added to the RL loss:
+
+```
+loss = policy_loss − entropy_coef · H(π) + sft_coef · CE(corpus_batch)
+```
+
+The cross-entropy term continuously anchors the model's output distribution to the pretrained language model. Without it, REINFORCE is free to collapse the vocabulary to whichever tokens maximize reward; with it, the model is reminded every step what the full vocabulary looks like. This is the defender's equivalent of the KL-to-base penalty used in RLHF. A global word-frequency counter (`--w-diversity`) additionally penalizes the defender during training for over-using any word across many recent episodes, so the gradient discourages homogenization at the episode level too.
+
 ---
 
 ## 6. Training: how it went, with graphs
@@ -332,6 +351,11 @@ break the defender.
 We then fine-tuned the defender with REINFORCE (reward = −attacker reward) for 10,000 episodes.
 Crucially, **30% of prefixes were drawn at random** from the CFG rather than from the
 mode-collapsed attacker, so the defender generalizes instead of memorizing one exploit.
+To keep the vocabulary healthy, three mechanisms run in parallel (see §5.4): an **entropy
+bonus** prevents the policy distribution from sharpening onto a few tokens; **SFT mixing**
+(`--sft-coef 0.5`) replays real corpus sentences so the RL updates cannot forget the full
+vocabulary; and **n-gram blocking + repetition penalty** (`--no-repeat-ngram-size 2`,
+`--repetition-penalty 1.3`) suppress word-loop patterns at inference time.
 
 ![Defender RL fine-tuning](docs/figures/fig_defender_rl.png)
 
@@ -420,6 +444,7 @@ holds **~95–99%** validity, i.e. it stays ahead across rounds while the attack
 | 5 | **DagsHub 401 auth** + **DagsHub downtime**. | DagsHub needs the token as **both** MLflow username *and* password; server occasionally unreachable. | Send token as user+pass; on any connection error, **fall back to local MLflow** (`mlruns/`). |
 | 6 | **Windows crashes** — OpenMP `libiomp5md.dll` conflict and `cp1252` Unicode errors. | PyTorch OMP double-load; console can’t encode special glyphs. | Set `KMP_DUPLICATE_LIB_OK=TRUE` in every entry script; replace non-ASCII output with ASCII. |
 | 7 | **Messy architecture** — reward code inside `src/attacker/`, defender importing *up* into attacker; duplicate `train_model.py`; flat `scripts/`. | Organic growth. | Extracted **`src/reward/`** shared package; grouped scripts into `train/ eval/ data/ demo/ downloads/`; deleted the duplicate. All 269 tests still pass. |
+| 8 | **Defender vocabulary collapse** — after RL, the defender repeated the same 2–3 words (`FALL FALL FALL BURN FALL`) in almost every sentence. | REINFORCE is mode-seeking: it finds a small set of tokens that reliably yield high reward and concentrates all probability mass there. | Applied three layers (§5.4): **entropy bonus** in the RL loss; **SFT mixing** (`--sft-coef`) replays corpus sentences every step to anchor the vocabulary; **n-gram blocking + repetition penalty** (`--no-repeat-ngram-size 2`, `--repetition-penalty 1.3`) suppress loops at inference time. |
 
 ---
 
@@ -481,6 +506,11 @@ python scripts/plot_report_figures.py
 Key attacker/defender flags: `--lr`, `--max-prefix`, `--atk-temp`/`--def-temp`,
 `--w-grammar`/`--w-tag`/`--w-axis`, `--baseline-alpha`, `--entropy-coef`, `--mix-random`,
 `--window`, `--seed`.
+
+Defender vocabulary-diversity flags (see §5.4): `--sft-coef` (supervised anchor weight, default 0.5),
+`--repetition-penalty` (logit downscale for seen tokens, default 1.3),
+`--no-repeat-ngram-size` (hard block for repeated n-grams, default 2),
+`--w-diversity` (global word-frequency penalty during training, default 1.5).
 
 ---
 
