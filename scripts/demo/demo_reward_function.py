@@ -16,11 +16,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.language.parsers import LexiconParser
-from src.attacker.reward_function import RewardFunction, RewardWeights
+from src.reward.reward_function import RewardFunction, RewardWeights
 
 WORDS_PATH = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "words.json"
 

@@ -30,7 +30,7 @@ try:
 except Exception:
     pass
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import torch
@@ -40,8 +40,8 @@ from src.language.entities.cfg import CFG
 from src.language.entities.cfg_validator import CFGValidator
 from src.attacker.cfg_state_tracker import CFGStateTracker
 from src.attacker.attacker import AttackerTransformer
-from src.attacker.reward import RewardComputer, RewardConfig
-from src.attacker.reward_function import RewardFunction, RewardWeights
+from src.reward.reward_computer import RewardComputer, RewardConfig
+from src.reward.reward_function import RewardFunction, RewardWeights
 from src.model.tokenizer import WordTokenizer
 from src.model.transformer import MiniGPT
 

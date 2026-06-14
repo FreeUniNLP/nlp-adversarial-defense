@@ -11,7 +11,7 @@ Run:
 """
 
 import unittest
-from src.attacker.reward import RewardComputer, RewardConfig, RewardResult, TopicProfile
+from src.reward.reward_computer import RewardComputer, RewardConfig, RewardResult, TopicProfile
 from tests.conftest import load_lexicon
 
 
