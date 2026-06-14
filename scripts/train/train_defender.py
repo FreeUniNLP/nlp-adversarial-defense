@@ -108,6 +108,7 @@ def setup_mlflow(use_mlflow: bool) -> bool:
     else:
         print("[WARN] MLflow enabled (local tracking only).")
 
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     mlflow.set_experiment("DefenderREINFORCE")
     return True
 

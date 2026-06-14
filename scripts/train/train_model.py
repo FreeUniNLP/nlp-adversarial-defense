@@ -125,6 +125,7 @@ def setup_mlflow(use_mlflow: bool) -> bool:
         print()
         print("  Then run: python scripts/train/train_model.py --mlflow ...")
     
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     mlflow.set_experiment("MiniGPT")
     return True
 

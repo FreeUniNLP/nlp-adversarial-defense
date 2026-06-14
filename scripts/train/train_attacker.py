@@ -121,6 +121,7 @@ def setup_mlflow(use_mlflow: bool) -> bool:
     else:
         print("[WARN] MLflow enabled (local tracking only).")
 
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     mlflow.set_experiment("AttackerREINFORCE")
     return True
 
@@ -485,7 +486,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--w-axis",         type=float, default=0.20, dest="w_axis")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha",
                    help="EMA baseline smoothing rate")
-    p.add_argument("--entropy-coef",   type=float, default=0.0, dest="entropy_coef",
+    p.add_argument("--entropy-coef",   type=float, default=0.01, dest="entropy_coef",
                    help="Entropy bonus coefficient (encourage exploration)")
     p.add_argument("--grad-clip",      type=float, default=1.0, dest="grad_clip")
     p.add_argument("--window",         type=int,   default=100,

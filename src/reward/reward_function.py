@@ -46,11 +46,12 @@ class RewardWeights:
     w_grammar: float = 1.0    # grammar failure reward weight
     w_tag:     float = 0.30   # tag mismatch weight
     w_axis:    float = 0.20   # axis distance weight
+    w_repeat:  float = 1.0    # repetition penalty weight (penalizes repeated words in suffix)
 
     @property
     def max_reward(self) -> float:
         """Theoretical maximum: all components = 1.0."""
-        return self.w_grammar + self.w_tag + self.w_axis
+        return self.w_grammar + self.w_tag + self.w_axis + self.w_repeat
 
 
 # ------------------------------------------------------------------ #
@@ -162,6 +163,7 @@ class RewardOutput:
     distances:       DistanceScores
     tag_reward:      float
     axis_reward:     float
+    repeat_reward:   float
     prefix:          SegmentFeatures
     suffix:          SegmentFeatures
     cfg_error:       Optional[str]
@@ -186,6 +188,7 @@ class RewardOutput:
             f"  grammar_reward : {self.grammar_reward:.4f}",
             f"  tag_reward     : {self.tag_reward:.4f}",
             f"  axis_reward    : {self.axis_reward:.4f}",
+            f"  repeat_reward  : {self.repeat_reward:.4f}",
             f"  TOTAL          : {self.reward:.4f}",
         ]
         return "\n".join(lines)
@@ -205,6 +208,27 @@ def _jaccard_distance(a: set[str], b: set[str]) -> float:
     inter = len(a & b)
     union = len(a | b)
     return 1.0 - inter / union
+
+
+def _repetition_score(words: list[str]) -> float:
+    """Repetition penalty in [0, 1] for a sequence of words.
+
+    Combines two signals and takes the stronger one:
+      * consecutive: fraction of adjacent positions that repeat the previous
+        word (e.g. "FALL FALL" -> hit). This is weighted to dominate because
+        back-to-back repeats are the worst offender.
+      * overall: fraction of words that are non-unique (catches scattered
+        repeats like "FALL X FALL").
+
+    0.0 = every word distinct; 1.0 = maximally repetitive (all same word).
+    """
+    n = len(words)
+    if n < 2:
+        return 0.0
+    consecutive = sum(1 for i in range(1, n) if words[i] == words[i - 1])
+    consec_frac = consecutive / (n - 1)
+    overall_frac = 1.0 - (len(set(words)) / n)
+    return max(consec_frac, overall_frac)
 
 
 def _cosine_distance(u: list[float], v: list[float]) -> float:
@@ -431,12 +455,14 @@ class RewardFunction:
         grammar_reward = 1.0 if not is_valid else 0.0
         tag_reward     = distances.tag_mismatch      # already ∈ [0, 1]
         axis_reward    = distances.axis_distance     # already ∈ [0, 1]
+        repeat_reward  = _repetition_score(suffix_words)  # ∈ [0, 1]; defender minimizes this
 
         # --- Step 4: weighted sum ---
         reward = (
             w.w_grammar * grammar_reward
             + w.w_tag   * tag_reward
             + w.w_axis  * axis_reward
+            + w.w_repeat * repeat_reward
         )
 
         return RewardOutput(
@@ -446,6 +472,7 @@ class RewardFunction:
             distances       = distances,
             tag_reward      = tag_reward,
             axis_reward     = axis_reward,
+            repeat_reward   = repeat_reward,
             prefix          = prefix_feat,
             suffix          = suffix_feat,
             cfg_error       = cfg_error if not is_valid else None,

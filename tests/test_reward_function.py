@@ -418,7 +418,8 @@ class TestRewardWeights(unittest.TestCase):
 
     def test_max_reward_equals_weight_sum(self):
         w = RewardWeights()
-        self.assertAlmostEqual(w.max_reward, w.w_grammar + w.w_tag + w.w_axis, places=6)
+        self.assertAlmostEqual(
+            w.max_reward, w.w_grammar + w.w_tag + w.w_axis + w.w_repeat, places=6)
 
     def test_custom_weights_accepted(self):
         w = RewardWeights(w_grammar=2.0, w_tag=0.5, w_axis=0.5)

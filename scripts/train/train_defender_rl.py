@@ -130,6 +130,7 @@ def setup_mlflow(use_mlflow: bool) -> bool:
     else:
         print("[WARN] MLflow enabled (local tracking only).")
 
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     mlflow.set_experiment("DefenderRL")
     return True
 
@@ -164,30 +165,48 @@ def sample_random_prefix(
 #  Defender completion with gradient-tracked log probs                  #
 # ------------------------------------------------------------------ #
 
+def _no_repeat_ngram_block(logits: torch.Tensor, generated_ids: list[int], ngram_size: int) -> torch.Tensor:
+    if ngram_size <= 0 or len(generated_ids) < ngram_size - 1:
+        return logits
+    prefix = tuple(generated_ids[-(ngram_size - 1):])
+    for i in range(len(generated_ids) - ngram_size + 1):
+        if tuple(generated_ids[i: i + ngram_size - 1]) == prefix:
+            logits[0, generated_ids[i + ngram_size - 1]] = float("-inf")
+    return logits
+
+
 def complete_with_log_probs(
-    defender:       MiniGPT,
-    prefix_ids:     list[int],
-    bos_id:         int,
-    eos_id:         int,
-    max_new_tokens: int,
-    temperature:    float,
-    device:         torch.device,
-    min_new_tokens: int = 1,
-) -> tuple[list[int], torch.Tensor]:
+    defender:             MiniGPT,
+    prefix_ids:           list[int],
+    bos_id:               int,
+    eos_id:               int,
+    max_new_tokens:       int,
+    temperature:          float,
+    device:               torch.device,
+    min_new_tokens:       int   = 1,
+    repetition_penalty:   float = 1.0,
+    no_repeat_ngram_size: int   = 0,
+) -> tuple[list[int], torch.Tensor, torch.Tensor]:
     """Autoregressive completion where each sampled token keeps its log-prob
-    with gradients attached (REINFORCE trajectory).
+    and the full per-step entropy with gradients attached (REINFORCE trajectory).
 
     EOS is masked until `min_new_tokens` words have been added — mirrors the
     AttackPipeline environment. The EOS choice itself is also a tracked action.
-    Returns (full_ids_without_bos, log_probs_tensor).
+    Returns (full_ids_without_bos, log_probs_tensor, entropies_tensor).
     """
     all_ids   = [bos_id] + list(prefix_ids)
     log_probs = []
+    entropies = []
     new_count = 0
 
     for _ in range(max_new_tokens):
         context = torch.tensor([all_ids[-defender.context_len:]], device=device)
         logits  = defender(context)[:, -1, :] / temperature
+
+        if repetition_penalty != 1.0:
+            for tid in set(all_ids[1:]):
+                logits[0, tid] /= repetition_penalty
+        logits = _no_repeat_ngram_block(logits, all_ids[1:], no_repeat_ngram_size)
 
         if new_count < min_new_tokens:
             mask = torch.zeros_like(logits)
@@ -195,18 +214,21 @@ def complete_with_log_probs(
             logits = logits + mask
 
         log_dist = F.log_softmax(logits, dim=-1)
-        with torch.no_grad():
-            next_id = torch.multinomial(log_dist.exp(), num_samples=1).item()
+        probs = F.softmax(logits.detach(), dim=-1)
+        next_id = torch.multinomial(probs, num_samples=1).item()
 
         log_probs.append(log_dist[0, next_id])
+        # True per-step entropy: H = -sum(p * log p); nan_to_num handles 0*-inf (masked EOS)
+        entropies.append(-(probs * log_dist).nan_to_num(0.0).sum())
 
         if next_id == eos_id:
             break
         all_ids.append(next_id)
         new_count += 1
 
-    lp = torch.stack(log_probs) if log_probs else torch.zeros(0, device=device)
-    return all_ids[1:], lp
+    lp  = torch.stack(log_probs) if log_probs else torch.zeros(0, device=device)
+    ent = torch.stack(entropies) if entropies else torch.zeros(0, device=device)
+    return all_ids[1:], lp, ent
 
 
 # ------------------------------------------------------------------ #
@@ -283,7 +305,8 @@ def train(args: argparse.Namespace) -> None:
     # --- Reward (same system as the attacker's) ---
     reward_fn = RewardFunction(
         nouns=nouns, verbs=verbs, adjectives=adjectives,
-        weights=RewardWeights(w_grammar=args.w_grammar, w_tag=args.w_tag, w_axis=args.w_axis),
+        weights=RewardWeights(w_grammar=args.w_grammar, w_tag=args.w_tag, w_axis=args.w_axis,
+                              w_repeat=args.w_repeat),
     )
 
     optimizer = torch.optim.AdamW(defender.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -302,6 +325,7 @@ def train(args: argparse.Namespace) -> None:
             "w_grammar":      args.w_grammar,
             "w_tag":          args.w_tag,
             "w_axis":         args.w_axis,
+            "entropy_coef":   args.entropy_coef,
             "baseline_alpha": args.baseline_alpha,
             "seed":           args.seed,
             "defender_ckpt":  str(defender_ckpt_path.name),
@@ -353,13 +377,16 @@ def train(args: argparse.Namespace) -> None:
             continue
 
         # --- Step 2: defender completes WITH log probs (gradients) ---
-        full_ids, log_probs = complete_with_log_probs(
+        full_ids, log_probs, entropies = complete_with_log_probs(
             defender, prefix_ids,
             bos_id=tokenizer.bos_id,
             eos_id=tokenizer.eos_id,
             max_new_tokens=args.max_completion,
             temperature=args.def_temp,
             device=device,
+            min_new_tokens=args.min_new_tokens,
+            repetition_penalty=args.repetition_penalty,
+            no_repeat_ngram_size=args.no_repeat_ngram_size,
         )
         if log_probs.numel() == 0:
             continue
@@ -380,9 +407,11 @@ def train(args: argparse.Namespace) -> None:
         attacker_reward = float(rw.reward)
         defender_reward = -attacker_reward   # defender minimizes the attacker's reward
 
-        # --- Step 4: REINFORCE update ---
+        # --- Step 4: REINFORCE update with entropy bonus ---
         advantage = defender_reward - baseline
-        loss = -(advantage * log_probs.sum())
+        policy_loss = -(advantage * log_probs.sum())
+        entropy_term = entropies.mean() if entropies.numel() > 0 else torch.tensor(0.0, device=device)
+        loss = policy_loss - args.entropy_coef * entropy_term
 
         optimizer.zero_grad()
         loss.backward()
@@ -463,9 +492,12 @@ def train(args: argparse.Namespace) -> None:
                 token_to_id=tokenizer.token_to_id, id_to_token=tokenizer.id_to_token,
                 max_tokens=args.max_prefix, temperature=args.atk_temp, device=str(device),
             )
-        f_ids, _ = complete_with_log_probs(
+        f_ids, _, _ = complete_with_log_probs(
             defender, p_ids, tokenizer.bos_id, tokenizer.eos_id,
-            args.max_completion, args.def_temp, device)
+            args.max_completion, args.def_temp, device,
+            min_new_tokens=args.min_new_tokens,
+            repetition_penalty=args.repetition_penalty,
+            no_repeat_ngram_size=args.no_repeat_ngram_size)
         sent = tokenizer.decode(f_ids)
         ok = validator.validate(sent).is_valid
         n_valid += ok
@@ -492,7 +524,13 @@ def parse_args() -> argparse.Namespace:
                    help="Low LR -- we are fine-tuning a trained model, not training from scratch")
     p.add_argument("--weight-decay",   type=float, default=0.0,  dest="weight_decay")
     p.add_argument("--max-prefix",     type=int,   default=6,    dest="max_prefix")
-    p.add_argument("--max-completion", type=int,   default=15,   dest="max_completion")
+    p.add_argument("--max-completion", type=int,   default=20,   dest="max_completion")
+    p.add_argument("--min-new-tokens",      type=int,   default=4,   dest="min_new_tokens",
+                   help="Minimum new tokens the defender must generate before EOS is allowed (default: 4)")
+    p.add_argument("--repetition-penalty",    type=float, default=1.3, dest="repetition_penalty",
+                   help="Penalize repeated tokens in defender completion (1.0=off, default: 1.3)")
+    p.add_argument("--no-repeat-ngram-size",  type=int,   default=2,   dest="no_repeat_ngram_size",
+                   help="Hard-block repeated n-grams in defender completion (0=off, default: 2)")
     p.add_argument("--atk-temp",       type=float, default=1.0,  dest="atk_temp")
     p.add_argument("--def-temp",       type=float, default=0.8,  dest="def_temp")
     p.add_argument("--mix-random",     type=float, default=0.3,  dest="mix_random",
@@ -502,6 +540,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")
     p.add_argument("--w-tag",          type=float, default=0.30, dest="w_tag")
     p.add_argument("--w-axis",         type=float, default=0.20, dest="w_axis")
+    p.add_argument("--w-repeat",       type=float, default=1.0,  dest="w_repeat",
+                   help="Repetition penalty weight -- heavily penalizes the defender for "
+                        "repeating words in its completion (default: 1.0)")
+    p.add_argument("--entropy-coef",   type=float, default=0.01, dest="entropy_coef",
+                   help="Defender entropy bonus -- prevents mode collapse (default: 0.01)")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha")
     p.add_argument("--grad-clip",      type=float, default=1.0,  dest="grad_clip")
     p.add_argument("--window",         type=int,   default=100)

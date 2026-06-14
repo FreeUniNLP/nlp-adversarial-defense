@@ -42,7 +42,7 @@ import os
 import random
 import sys
 import time
-from collections import deque
+from collections import Counter, deque
 from pathlib import Path
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
@@ -90,8 +90,8 @@ WORDS_PATH      = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "wo
 TRANSITION_PATH = PROJECT_ROOT / "data" / "raw" / "word_centered_language" / "transition.json"
 DEFAULT_CORPUS  = PROJECT_ROOT / "data" / "raw" / "generated_texts" / "generated_corpus_10000.txt"
 
-DEFAULT_ATTACKER_CKPT = PROJECT_ROOT / "data" / "models" / "from_mlflow" / "attacker_best.pt"
-DEFAULT_DEFENDER_CKPT = PROJECT_ROOT / "data" / "models" / "defender_rl_best.pt"
+DEFAULT_ATTACKER_CKPT = PROJECT_ROOT / "data" / "models" / "from_mlflow" / "AttackerREINFORCE" / "enthused-sheep-51" / "attacker_best.pt"
+DEFAULT_DEFENDER_CKPT = PROJECT_ROOT / "data" / "models" / "from_mlflow" / "MiniGPT" / "nosy-chimp-161" / "minigpt_corpus10000.pt"
 
 OUTPUT_DIR = PROJECT_ROOT / "data" / "models" / "cotrain"
 
@@ -129,6 +129,7 @@ def setup_mlflow(use_mlflow: bool) -> bool:
     else:
         print("[WARN] MLflow enabled (local tracking only).")
 
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     mlflow.set_experiment("AdversarialCoTraining")
     return True
 
@@ -159,53 +160,74 @@ def sample_random_prefix(
     return ids, words
 
 
+def _no_repeat_ngram_block(logits: torch.Tensor, generated_ids: list[int], ngram_size: int) -> torch.Tensor:
+    if ngram_size <= 0 or len(generated_ids) < ngram_size - 1:
+        return logits
+    prefix = tuple(generated_ids[-(ngram_size - 1):])
+    for i in range(len(generated_ids) - ngram_size + 1):
+        if tuple(generated_ids[i: i + ngram_size - 1]) == prefix:
+            logits[0, generated_ids[i + ngram_size - 1]] = float("-inf")
+    return logits
+
+
 def defender_complete(
-    defender:       MiniGPT,
-    prefix_ids:     list[int],
-    bos_id:         int,
-    eos_id:         int,
-    max_new_tokens: int,
-    temperature:    float,
-    device:         torch.device,
-    min_new_tokens: int = 1,
+    defender:             MiniGPT,
+    prefix_ids:           list[int],
+    bos_id:               int,
+    eos_id:               int,
+    max_new_tokens:       int,
+    temperature:          float,
+    device:               torch.device,
+    min_new_tokens:       int   = 1,
+    repetition_penalty:   float = 1.0,
+    no_repeat_ngram_size: int   = 0,
     with_grad:      bool = False,
-) -> tuple[list[int], torch.Tensor]:
-    """Defender completion. If with_grad, each sampled token's log-prob is
-    tracked for REINFORCE; otherwise runs under no_grad.
+) -> tuple[list[int], torch.Tensor, torch.Tensor]:
+    """Defender completion. If with_grad, each sampled token's log-prob and
+    the full per-step entropy are tracked for REINFORCE; otherwise runs under
+    no_grad.
 
     EOS is masked until min_new_tokens words have been added (same
     environment as AttackPipeline).
-    Returns (full_ids_without_bos, log_probs).
+    Returns (full_ids_without_bos, log_probs, entropies).
     """
     all_ids   = [bos_id] + list(prefix_ids)
     log_probs = []
+    entropies = []
     new_count = 0
 
-    ctx = torch.enable_grad() if with_grad else torch.no_grad()
-    with ctx:
-        for _ in range(max_new_tokens):
-            context = torch.tensor([all_ids[-defender.context_len:]], device=device)
-            logits  = defender(context)[:, -1, :] / temperature
+    for _ in range(max_new_tokens):
+        context = torch.tensor([all_ids[-defender.context_len:]], device=device)
 
+        with torch.set_grad_enabled(with_grad):
+            logits = defender(context)[:, -1, :] / temperature
+            if repetition_penalty != 1.0:
+                for tid in set(all_ids[1:]):
+                    logits[0, tid] /= repetition_penalty
+            logits = _no_repeat_ngram_block(logits, all_ids[1:], no_repeat_ngram_size)
             if new_count < min_new_tokens:
                 mask = torch.zeros_like(logits)
                 mask[0, eos_id] = float("-inf")
                 logits = logits + mask
-
             log_dist = F.log_softmax(logits, dim=-1)
-            with torch.no_grad():
-                next_id = torch.multinomial(log_dist.exp(), num_samples=1).item()
 
-            if with_grad:
-                log_probs.append(log_dist[0, next_id])
+        # Sample from a clean detached probability tensor (avoids log→exp NaN path)
+        probs = F.softmax(logits.detach(), dim=-1)
+        next_id = torch.multinomial(probs, num_samples=1).item()
 
-            if next_id == eos_id:
-                break
-            all_ids.append(next_id)
-            new_count += 1
+        if with_grad:
+            log_probs.append(log_dist[0, next_id])
+            # True per-step entropy: H = -sum(p * log p); nan_to_num handles 0*-inf (masked EOS)
+            entropies.append(-(probs * log_dist).nan_to_num(0.0).sum())
+
+        if next_id == eos_id:
+            break
+        all_ids.append(next_id)
+        new_count += 1
 
     lp = torch.stack(log_probs) if log_probs else torch.zeros(0, device=device)
-    return all_ids[1:], lp
+    ent = torch.stack(entropies) if entropies else torch.zeros(0, device=device)
+    return all_ids[1:], lp, ent
 
 
 # ------------------------------------------------------------------ #
@@ -232,6 +254,24 @@ class AdversarialCoTrainer:
         self.tok = WordTokenizer.from_corpus(corpus_path)
         logger.info(f"Vocab size: {self.tok.vocab_size}")
 
+        # --- Supervised corpus (anchors the defender to natural language stats) ---
+        # Real sentences carry the full vocabulary distribution. Mixing a supervised
+        # next-token loss into the defender's RL update keeps it from collapsing onto
+        # a few grammar-safe verbs (FALL/BURN).
+        self.corpus_samples: list[list[int]] = []
+        if args.sft_coef > 0:
+            with corpus_path.open(encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    ids = self.tok.encode(line, add_special=True)
+                    if len(ids) >= 2:
+                        self.corpus_samples.append(ids)
+            logger.info(f"Loaded {len(self.corpus_samples)} corpus sentences for SFT mixing "
+                        f"(sft_coef={args.sft_coef}, sft_batch={args.sft_batch})")
+        self.sft_criterion = nn.CrossEntropyLoss(ignore_index=self.tok.pad_id)
+
         # --- Models ---
         self.attacker = self._load_attacker(args.attacker_ckpt)
         self.defender = self._load_defender(args.defender_ckpt)
@@ -240,7 +280,8 @@ class AdversarialCoTrainer:
         self.reward_fn = RewardFunction(
             nouns=nouns, verbs=verbs, adjectives=adjectives,
             weights=RewardWeights(w_grammar=args.w_grammar,
-                                  w_tag=args.w_tag, w_axis=args.w_axis),
+                                  w_tag=args.w_tag, w_axis=args.w_axis,
+                                  w_repeat=args.w_repeat),
         )
 
         # --- Optimizers (persist across rounds) ---
@@ -251,7 +292,67 @@ class AdversarialCoTrainer:
         self.baseline_atk = 0.0
         self.baseline_def = 0.0
 
+        # --- Global vocabulary-coverage tracking (anti vocab-collapse) ---
+        # Counts how often each word has appeared in the defender's recent
+        # completions. Over-used words (FALL, BURN...) get penalized so the
+        # defender is pushed to spread across the whole vocabulary.
+        self.word_window = deque(maxlen=args.diversity_window)
+        self.word_counts: Counter = Counter()
+
         self.global_episode = 0
+
+    # ------------------------------------------------------------------ #
+    #  Vocabulary-coverage penalty                                         #
+    # ------------------------------------------------------------------ #
+
+    def _overuse_score(self, words: list[str]) -> float:
+        """Mean recent frequency of the given words, in [0, 1].
+
+        0 = all words are unseen/rare in recent output; ~1 = the completion
+        is made entirely of the single most over-used word.
+        """
+        total = sum(self.word_counts.values())
+        if total == 0 or not words:
+            return 0.0
+        return sum(self.word_counts.get(w, 0) / total for w in words) / len(words)
+
+    def _update_word_window(self, words: list[str]) -> None:
+        """Push the completion's words into the rolling frequency window."""
+        for w in words:
+            if len(self.word_window) == self.word_window.maxlen:
+                old = self.word_window[0]  # will be evicted by the append below
+                self.word_counts[old] -= 1
+                if self.word_counts[old] <= 0:
+                    del self.word_counts[old]
+            self.word_window.append(w)
+            self.word_counts[w] += 1
+
+    # ------------------------------------------------------------------ #
+    #  Supervised (SFT) anchor loss                                        #
+    # ------------------------------------------------------------------ #
+
+    def _sft_loss(self, batch_size: int) -> torch.Tensor:
+        """Next-token cross-entropy on a random batch of real corpus sentences.
+
+        Anchors the defender to the natural language distribution so RL cannot
+        collapse the output vocabulary. Returns a scalar loss with gradients.
+        """
+        ctx = self.defender.context_len
+        pad = self.tok.pad_id
+        batch = random.sample(self.corpus_samples, min(batch_size, len(self.corpus_samples)))
+
+        inputs, targets = [], []
+        for ids in batch:
+            ids = ids[: ctx + 1]
+            padded = ids + [pad] * (ctx + 1 - len(ids))
+            t = torch.tensor(padded, dtype=torch.long)
+            inputs.append(t[:-1])
+            targets.append(t[1:])
+
+        x = torch.stack(inputs).to(self.device)
+        y = torch.stack(targets).to(self.device)
+        logits = self.defender(x)
+        return self.sft_criterion(logits.reshape(-1, self.tok.vocab_size), y.reshape(-1))
 
     # ------------------------------------------------------------------ #
 
@@ -316,11 +417,14 @@ class AdversarialCoTrainer:
             return None
 
         # --- completion ---
-        full_ids, def_lp = defender_complete(
+        full_ids, def_lp, def_ent = defender_complete(
             self.defender, prefix_ids,
             bos_id=self.tok.bos_id, eos_id=self.tok.eos_id,
             max_new_tokens=a.max_completion, temperature=a.def_temp,
             device=self.device, with_grad=(train_side == "defender"),
+            min_new_tokens=a.min_new_tokens,
+            repetition_penalty=a.repetition_penalty,
+            no_repeat_ngram_size=a.no_repeat_ngram_size,
         )
 
         full_words    = self.tok.decode(full_ids).split()
@@ -335,7 +439,7 @@ class AdversarialCoTrainer:
             is_valid=result.is_valid,
             cfg_error=result.error if not result.is_valid else None,
         )
-        return float(rw.reward), result.is_valid, atk_lp, def_lp, prefix_words, suffix_part
+        return float(rw.reward), result.is_valid, atk_lp, def_lp, def_ent, prefix_words, suffix_part
 
     # ------------------------------------------------------------------ #
     #  Phases                                                              #
@@ -357,7 +461,7 @@ class AdversarialCoTrainer:
             out = self._episode(train_side=side)
             if out is None:
                 continue
-            attacker_reward, valid, atk_lp, def_lp, prefix_words, suffix_words = out
+            attacker_reward, valid, atk_lp, def_lp, def_ent, prefix_words, suffix_words = out
             self.global_episode += 1
 
             if side == "attacker":
@@ -378,9 +482,19 @@ class AdversarialCoTrainer:
             else:
                 if def_lp.numel() == 0:
                     continue
-                reward    = -attacker_reward          # defender minimizes attacker reward
+                # Global vocab-coverage penalty: discourage over-used words so the
+                # defender spreads across the vocabulary instead of leaning on FALL/BURN.
+                overuse = self._overuse_score(suffix_words)
+                self._update_word_window(suffix_words)
+                reward    = -attacker_reward - a.w_diversity * overuse  # defender minimizes attacker reward + overuse
                 advantage = reward - self.baseline_def
-                loss = -(advantage * def_lp.sum())
+                policy_loss = -(advantage * def_lp.sum())
+                entropy_term = def_ent.mean() if def_ent.numel() > 0 else torch.tensor(0.0, device=self.device)
+                loss = policy_loss - a.entropy_coef_defender * entropy_term
+                # Supervised anchor: mix in next-token loss on real corpus sentences
+                # so RL can't collapse the output vocabulary.
+                if a.sft_coef > 0 and self.corpus_samples:
+                    loss = loss + a.sft_coef * self._sft_loss(a.sft_batch)
 
                 self.opt_def.zero_grad()
                 loss.backward()
@@ -433,7 +547,7 @@ class AdversarialCoTrainer:
             out = self._episode(train_side="eval")  # both frozen paths
             if out is None:
                 continue
-            attacker_reward, valid, *_ = out
+            attacker_reward, valid, *_rest = out
             n += 1
             n_valid      += int(valid)
             total_reward += attacker_reward
@@ -490,8 +604,9 @@ def train(args: argparse.Namespace) -> None:
             "episodes_per_phase": args.x,
             "lr_attacker":        args.lr_attacker,
             "lr_defender":        args.lr_defender,
-            "entropy_coef":       args.entropy_coef,
-            "mix_random":         args.mix_random,
+            "entropy_coef":          args.entropy_coef,
+            "entropy_coef_defender": args.entropy_coef_defender,
+            "mix_random":            args.mix_random,
             "atk_temp":           args.atk_temp,
             "def_temp":           args.def_temp,
             "w_grammar":          args.w_grammar,
@@ -551,7 +666,7 @@ def train(args: argparse.Namespace) -> None:
         out = trainer._episode(train_side="eval")
         if out is None:
             continue
-        reward, valid, _, _, prefix_words, suffix_words = out
+        reward, valid, _, _, _, prefix_words, suffix_words = out
         tag = "OK " if valid else "BAD"
         logger.info(f"  [{tag}] {' '.join(prefix_words)} | {' '.join(suffix_words)}  "
                     f"(R={reward:.3f})")
@@ -581,15 +696,41 @@ def parse_args() -> argparse.Namespace:
                    help="Lower LR for the defender -- it is fine-tuned, not trained from scratch")
     p.add_argument("--entropy-coef",   type=float, default=0.05, dest="entropy_coef",
                    help="Attacker entropy bonus -- prevents mode collapse (default: 0.05)")
+    p.add_argument("--entropy-coef-defender", type=float, default=0.01, dest="entropy_coef_defender",
+                   help="Defender entropy bonus -- prevents mode collapse (default: 0.01)")
     p.add_argument("--mix-random",     type=float, default=0.3,  dest="mix_random",
                    help="Fraction of defender episodes using random CFG prefixes (default: 0.3)")
     p.add_argument("--max-prefix",     type=int,   default=6,    dest="max_prefix")
-    p.add_argument("--max-completion", type=int,   default=15,   dest="max_completion")
+    p.add_argument("--max-completion", type=int,   default=20,   dest="max_completion")
+    p.add_argument("--min-new-tokens",      type=int,   default=4,   dest="min_new_tokens",
+                   help="Minimum new tokens the defender must generate before EOS is allowed (default: 4)")
+    p.add_argument("--repetition-penalty",    type=float, default=1.3, dest="repetition_penalty",
+                   help="Penalize repeated tokens in defender completion (1.0=off, default: 1.3)")
+    p.add_argument("--no-repeat-ngram-size",  type=int,   default=2,   dest="no_repeat_ngram_size",
+                   help="Hard-block repeated n-grams in defender completion (0=off, default: 2)")
     p.add_argument("--atk-temp",       type=float, default=1.0,  dest="atk_temp")
     p.add_argument("--def-temp",       type=float, default=0.8,  dest="def_temp")
     p.add_argument("--w-grammar",      type=float, default=1.0,  dest="w_grammar")
     p.add_argument("--w-tag",          type=float, default=0.30, dest="w_tag")
     p.add_argument("--w-axis",         type=float, default=0.20, dest="w_axis")
+    p.add_argument("--w-repeat",       type=float, default=1.0,  dest="w_repeat",
+                   help="Repetition penalty weight -- heavily penalizes the defender for "
+                        "repeating words in its completion (default: 1.0)")
+    p.add_argument("--w-diversity",    type=float, default=1.5,  dest="w_diversity",
+                   help="Vocabulary-coverage penalty weight -- penalizes the defender for "
+                        "over-using globally frequent words (FALL/BURN). Pushes the model to "
+                        "spread across the whole vocabulary (default: 1.5)")
+    p.add_argument("--diversity-window", type=int, default=2000, dest="diversity_window",
+                   help="Rolling window (in words) used to estimate word frequencies for the "
+                        "vocabulary-coverage penalty (default: 2000)")
+    p.add_argument("--sft-coef",       type=float, default=0.5,  dest="sft_coef",
+                   help="Supervised-mixing coefficient: weight of next-token corpus loss added "
+                        "to the defender's RL update. Anchors it to natural language and prevents "
+                        "vocabulary collapse (0=pure RL, default: 0.5)")
+    p.add_argument("--sft-batch",      type=int,   default=8,    dest="sft_batch",
+                   help="Number of corpus sentences per supervised mixing step (default: 8)")
+    p.add_argument("--min-valid",       type=float, default=0.0,  dest="min_valid",
+                   help="Early-stop attacker phase if rolling valid rate drops below this (default: 0 = disabled)")
     p.add_argument("--baseline-alpha", type=float, default=0.05, dest="baseline_alpha")
     p.add_argument("--grad-clip",      type=float, default=1.0,  dest="grad_clip")
     p.add_argument("--window",         type=int,   default=100)
