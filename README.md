@@ -17,6 +17,8 @@ robustness.
 > - **§5 — why this loss function and architecture**
 > - **§6 — how training went, with graphs**
 > - **§7 — evaluation tasks, why we chose them, and the results**
+>
+> 🇬🇪 A Georgian-language version of the report is in **[`REPORT_KA.md`](REPORT_KA.md)**.
 
 ---
 
@@ -167,15 +169,18 @@ nlp-adversarial-defense/
 │   ├── train/                        train_model, train_attacker, train_defender,
 │   │                                 train_defender_rl, train_adversarial
 │   ├── eval/                         attack_and_complete, evaluate_model, infer,
-│   │                                 complete_and_validate, run_attacker, test_attacker
+│   │                                 complete_and_validate, run_attacker, test_attacker,
+│   │                                 compare_defenders (defender-vs-defender quality)
 │   ├── data/                         text_generator (corpus generation)
 │   ├── demo/                         demo_reward_function
-│   ├── downloads/                    download_best_attacker / _defender from MLflow
+│   ├── downloads/                    download_best_attacker / _defender / _all_models
+│   ├── run_adversarial_cycle.sh      end-to-end attacker↔defender cycle driver
 │   └── plot_report_figures.py        regenerates the graphs in this README
 │
 ├── tests/                            269 unit tests (pytest)
 ├── docs/figures/                     report figures (PNG)
-└── README.md                         ← this file
+├── README.md                         ← this file
+└── REPORT_KA.md                      Georgian technical report (graded deliverable)
 ```
 
 The reward logic lives in its **own neutral `src/reward/` package**. Earlier it sat inside
@@ -458,6 +463,14 @@ python scripts/eval/attack_and_complete.py --n 10 --verbose          # reward br
 python scripts/eval/infer.py                                         # interactive completion
 python scripts/eval/validate_sentence.py "FREE WOLF FALL"            # validate one sentence
 python scripts/demo/demo_reward_function.py                          # step-by-step reward demo
+
+# Compare two defender checkpoints on free-generation validity (baseline vs trained)
+python scripts/eval/compare_defenders.py \
+    --baseline data/models/minigpt_corpus10000.pt \
+    --trained  data/models/defender_rl_best.pt
+
+# Pull the best team models from MLflow (attacker + defender, or everything)
+python scripts/downloads/download_all_models.py
 
 # Regenerate the report figures
 python scripts/plot_report_figures.py
