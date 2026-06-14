@@ -53,10 +53,10 @@ DEFAULT_CORPUS  = PROJECT_ROOT / "data" / "raw" / "generated_texts" / "generated
 
 def load_defender(ckpt_path: Path, tokenizer: WordTokenizer, device: torch.device) -> MiniGPT:
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
-    model = MiniGPT(vocab_size=tokenizer.vocab_size, pad_id=tokenizer.pad_id).to(device)
     # Support both raw model-state dicts and wrapped checkpoints
-    state = ckpt.get("model_state", ckpt) if isinstance(ckpt, dict) else ckpt
-    model.load_state_dict(state)
+    if isinstance(ckpt, dict) and "model_state" not in ckpt and "model_config" not in ckpt:
+        ckpt = {"model_state": ckpt}
+    model = MiniGPT.from_checkpoint(ckpt, tokenizer.vocab_size, tokenizer.pad_id).to(device)
     model.eval()
     return model
 

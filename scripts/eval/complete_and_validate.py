@@ -57,8 +57,7 @@ def load_model(corpus_size: int, device: str = "cpu") -> tuple[MiniGPT, WordToke
     tokenizer = WordTokenizer.from_corpus(corpus_path)
     ckpt      = torch.load(ckpt_path, map_location=device, weights_only=False)
 
-    model = MiniGPT(vocab_size=tokenizer.vocab_size, pad_id=tokenizer.pad_id)
-    model.load_state_dict(ckpt["model_state"])
+    model = MiniGPT.from_checkpoint(ckpt, tokenizer.vocab_size, tokenizer.pad_id)
     model.to(device)
     model.eval()
 

@@ -150,11 +150,8 @@ class AttackPipeline:
         defender_path = Path(defender_ckpt) if defender_ckpt else CKPT_PATH
         print(f"  checkpoint: {defender_path}")
         ckpt = torch.load(defender_path, map_location=device, weights_only=False)
-        self.defender = MiniGPT(
-            vocab_size=self.tokenizer.vocab_size,
-            pad_id=self.tokenizer.pad_id,
-        )
-        self.defender.load_state_dict(ckpt["model_state"])
+        self.defender = MiniGPT.from_checkpoint(
+            ckpt, self.tokenizer.vocab_size, self.tokenizer.pad_id)
         self.defender.to(device)
         self.defender.eval()
         if "epoch" in ckpt:
