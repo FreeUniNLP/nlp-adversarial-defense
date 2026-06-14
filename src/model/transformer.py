@@ -75,6 +75,17 @@ class MiniGPT(nn.Module):
         super().__init__()
         self.context_len = context_len
         self.pad_id = pad_id
+        # Self-describing architecture config so checkpoints can be reloaded at the
+        # right size regardless of the constructor defaults.
+        self.config = {
+            "vocab_size":  vocab_size,
+            "context_len": context_len,
+            "embed_dim":   embed_dim,
+            "num_heads":   num_heads,
+            "num_layers":  num_layers,
+            "ffn_dim":     ffn_dim,
+            "dropout":     dropout,
+        }
 
         self.token_emb = nn.Embedding(vocab_size, embed_dim, padding_idx=pad_id)
         self.pos_emb = nn.Embedding(context_len, embed_dim)
@@ -97,6 +108,39 @@ class MiniGPT(nn.Module):
                 nn.init.normal_(module.weight, mean=0.0, std=0.02)
             if isinstance(module, nn.Linear) and module.bias is not None:
                 nn.init.zeros_(module.bias)
+
+    @classmethod
+    def from_checkpoint(cls, ckpt: dict, vocab_size: int, pad_id: int) -> "MiniGPT":
+        """Build a MiniGPT matching the architecture stored in a checkpoint.
+
+        Looks for a 'model_config' dict first (newer checkpoints), then falls back
+        to the training 'args' (train_model.py checkpoints), then to the original
+        default architecture (embed 64 / 4 layers) for legacy checkpoints that
+        recorded nothing.
+        """
+        cfg  = ckpt.get("model_config") or {}
+        args = ckpt.get("args") or {}
+
+        def pick(key, default):
+            if key in cfg:
+                return cfg[key]
+            if key in args:
+                return args[key]
+            return default
+
+        embed_dim = pick("embed_dim", 64)
+        model = cls(
+            vocab_size  = vocab_size,
+            pad_id      = pad_id,
+            context_len = pick("context_len", 32),
+            embed_dim   = embed_dim,
+            num_heads   = pick("num_heads", 4),
+            num_layers  = pick("num_layers", 4),
+            ffn_dim     = pick("ffn_dim", embed_dim * 4),
+            dropout     = pick("dropout", 0.1),
+        )
+        model.load_state_dict(ckpt["model_state"])
+        return model
 
     def forward(self, idx: torch.Tensor) -> torch.Tensor:
         B, T = idx.shape

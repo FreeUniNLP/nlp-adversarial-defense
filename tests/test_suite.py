@@ -346,8 +346,7 @@ class TestMiniGPT(unittest.TestCase):
 
         cls.tokenizer = WordTokenizer.from_corpus(CORPUS_PATH)
         ckpt = torch.load(CKPT_PATH, map_location="cpu", weights_only=False)
-        cls.model = MiniGPT(vocab_size=cls.tokenizer.vocab_size, pad_id=cls.tokenizer.pad_id)
-        cls.model.load_state_dict(ckpt["model_state"])
+        cls.model = MiniGPT.from_checkpoint(ckpt, cls.tokenizer.vocab_size, cls.tokenizer.pad_id)
         cls.model.eval()
 
     def setUp(self):

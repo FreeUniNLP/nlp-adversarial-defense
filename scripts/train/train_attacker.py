@@ -235,11 +235,7 @@ def train(args: argparse.Namespace) -> None:
         )
     logger.info(f"Loading defender checkpoint: {defender_ckpt.name}")
     ckpt = torch.load(defender_ckpt, map_location=device, weights_only=False)
-    defender = MiniGPT(
-        vocab_size=tokenizer.vocab_size,
-        pad_id=tokenizer.pad_id,
-    ).to(device)
-    defender.load_state_dict(ckpt["model_state"])
+    defender = MiniGPT.from_checkpoint(ckpt, tokenizer.vocab_size, tokenizer.pad_id).to(device)
     defender.eval()
     for p in defender.parameters():
         p.requires_grad = False

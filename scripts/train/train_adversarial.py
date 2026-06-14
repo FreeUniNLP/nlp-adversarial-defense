@@ -374,9 +374,8 @@ class AdversarialCoTrainer:
             raise FileNotFoundError(f"Defender checkpoint not found: {path}")
         self.logger.info(f"Loading defender: {path}")
         ckpt = torch.load(path, map_location=self.device, weights_only=False)
-        model = MiniGPT(
-            vocab_size=self.tok.vocab_size, pad_id=self.tok.pad_id).to(self.device)
-        model.load_state_dict(ckpt["model_state"])
+        model = MiniGPT.from_checkpoint(
+            ckpt, self.tok.vocab_size, self.tok.pad_id).to(self.device)
         model.eval()  # dropout off; gradients still flow when needed
         return model
 
@@ -564,6 +563,7 @@ class AdversarialCoTrainer:
         torch.save({"round": round_idx, "model_state": self.attacker.state_dict(),
                     "args": vars(self.args)}, atk_path)
         torch.save({"round": round_idx, "model_state": self.defender.state_dict(),
+                    "model_config": self.defender.config,
                     "args": vars(self.args)}, def_path)
         return atk_path, def_path
 

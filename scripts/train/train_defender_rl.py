@@ -284,8 +284,7 @@ def train(args: argparse.Namespace) -> None:
         raise FileNotFoundError(f"Defender checkpoint not found: {defender_ckpt_path}")
     logger.info(f"Loading defender (to fine-tune): {defender_ckpt_path}")
     d_ckpt = torch.load(defender_ckpt_path, map_location=device, weights_only=False)
-    defender = MiniGPT(vocab_size=tokenizer.vocab_size, pad_id=tokenizer.pad_id).to(device)
-    defender.load_state_dict(d_ckpt["model_state"])
+    defender = MiniGPT.from_checkpoint(d_ckpt, tokenizer.vocab_size, tokenizer.pad_id).to(device)
     defender.eval()  # disable dropout; gradients still flow
     logger.info(f"  base checkpoint: epoch={d_ckpt.get('epoch','?')} loss={d_ckpt.get('loss', float('nan')):.4f}")
 
@@ -462,6 +461,7 @@ def train(args: argparse.Namespace) -> None:
                 torch.save({
                     "episode":     ep,
                     "model_state": defender.state_dict(),
+                    "model_config": defender.config,
                     "avg_defender_reward": avg_rw,
                     "valid_rate":  valid_rate,
                     "base_ckpt":   str(defender_ckpt_path.name),
@@ -475,6 +475,7 @@ def train(args: argparse.Namespace) -> None:
     torch.save({
         "episode":     args.episodes,
         "model_state": defender.state_dict(),
+        "model_config": defender.config,
         "base_ckpt":   str(defender_ckpt_path.name),
         "args":        vars(args),
     }, final_path)
