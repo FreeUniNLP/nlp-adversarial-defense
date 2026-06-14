@@ -1,5 +1,7 @@
 # NLP Adversarial Defense — Project & Report
 
+DAGSHUB https://dagshub.com/kende23/nlp-adversarial-defense/experiments
+
 A research project that studies how a small language model **defends** against an adversarial
 **attacker** inside a fully controlled synthetic language. The attacker generates
 grammatically valid sentence *prefixes* designed to push the defender into producing an
