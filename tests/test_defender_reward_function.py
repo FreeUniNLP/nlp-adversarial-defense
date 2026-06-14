@@ -7,8 +7,8 @@ Run:
 
 import unittest
 
-from src.attacker.reward_function import RewardFunction
-from src.defender.reward_function import (
+from src.reward.reward_function import RewardFunction
+from src.reward.defender_reward import (
     DefenderRewardFunction,
     DefenderRewardOutput,
     DefenderRewardWeights,

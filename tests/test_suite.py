@@ -731,7 +731,7 @@ class TestRewardComputer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from src.attacker.reward import RewardComputer, RewardConfig, TopicProfile
+        from src.reward.reward_computer import RewardComputer, RewardConfig, TopicProfile
         cls.RewardComputer  = RewardComputer
         cls.RewardConfig    = RewardConfig
         cls.TopicProfile    = TopicProfile
@@ -752,7 +752,7 @@ class TestRewardComputer(unittest.TestCase):
     # ------------------------------------------------------------------ #
 
     def test_compute_returns_reward_result(self):
-        from src.attacker.reward import RewardResult
+        from src.reward.reward_computer import RewardResult
         result = self.rc.compute(["MAN"], ["RUN"], is_valid=True)
         self.assertIsInstance(result, RewardResult)
 

@@ -20,7 +20,7 @@ import argparse
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import torch
@@ -30,7 +30,7 @@ from src.model.transformer import MiniGPT
 from src.language.parsers import LexiconParser
 from src.language.entities.cfg import CFG
 from src.language.entities.cfg_validator import CFGValidator
-from scripts.infer import complete_sentence
+from scripts.eval.infer import complete_sentence
 
 MODELS_DIR      = PROJECT_ROOT / "data" / "models"
 CORPUS_DIR      = PROJECT_ROOT / "data" / "raw" / "generated_texts"
