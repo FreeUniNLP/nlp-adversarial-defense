@@ -12,6 +12,9 @@ build/
 develop-eggs/
 dist/
 downloads/
+# ...but keep our MLflow download scripts (referenced by the README)
+!scripts/downloads/
+!scripts/downloads/*.py
 eggs/
 .eggs/
 lib/
