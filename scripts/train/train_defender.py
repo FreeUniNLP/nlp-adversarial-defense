@@ -45,7 +45,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.attacker.attacker import AttackerTransformer
 from src.attacker.cfg_state_tracker import CFGStateTracker
-from src.defender.reward_function import DefenderRewardFunction, DefenderRewardWeights
+from src.reward.defender_reward import DefenderRewardFunction, DefenderRewardWeights
 from src.language.entities.cfg import CFG
 from src.language.entities.cfg_validator import CFGValidator
 from src.language.parsers import LexiconParser

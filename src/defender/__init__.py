@@ -1,6 +1,6 @@
 """Defender components: reward function and RL helpers."""
 
-from src.defender.reward_function import (
+from src.reward.defender_reward import (
     DefenderRewardFunction,
     DefenderRewardOutput,
     DefenderRewardWeights,

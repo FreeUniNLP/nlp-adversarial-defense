@@ -16,7 +16,7 @@ Run:
 import math
 import unittest
 
-from src.attacker.reward_function import (
+from src.reward.reward_function import (
     RewardFunction,
     RewardWeights,
     RewardOutput,

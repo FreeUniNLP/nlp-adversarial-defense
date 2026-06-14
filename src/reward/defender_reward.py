@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from src.attacker.reward_function import (
+from src.reward.reward_function import (
     DistanceCalculator,
     DistanceScores,
     FeatureExtractor,

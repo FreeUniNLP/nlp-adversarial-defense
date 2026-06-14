@@ -18,7 +18,7 @@ import torch
 
 from src.attacker.attacker import AttackerTransformer
 from src.attacker.cfg_state_tracker import CFGStateTracker
-from src.attacker.reward_function import RewardFunction, RewardWeights
+from src.reward.reward_function import RewardFunction, RewardWeights
 from src.language.entities.cfg_validator import CFGValidator
 from src.model.tokenizer import WordTokenizer
 from src.model.transformer import MiniGPT
